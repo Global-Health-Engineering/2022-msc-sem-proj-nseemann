@@ -1,0 +1,50 @@
+---
+title: "Thesis Outline"
+format: html
+editor: visual
+author: "Add your name"
+---
+
+<!--# This is a suggested thesis outline and it is taken from the ghe-style-guide.docx contained in the same folder. The actual guidance is removed here. Please refer to the other docx file for guidance on what goes into which section. -->
+
+<!--# You are free to edit this outline and split the file into several individual files. -->
+
+# Abstract
+
+# Introduction
+
+## Background topic 1
+
+## Background topic 2
+
+### Heading level three
+
+## Justification and Research Questions
+
+# Methods
+
+## Site selection
+
+## Sample Size
+
+## Ethics
+
+## Experimental Design
+
+### Experiment 1
+
+### Experiment 2
+
+# Results and Discussion
+
+## Discussion
+
+## Tables and Figures
+
+## Tables
+
+## Figures
+
+# Conclusions and Recommendations
+
+# References
