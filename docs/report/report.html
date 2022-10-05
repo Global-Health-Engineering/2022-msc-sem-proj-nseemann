@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.1.251">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Nicolas Seemann-Ricard">
+
+<title>Optimization of solid waste in Blantyre, Malawi</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Optimization of solid waste in Blantyre, Malawi</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Nicolas Seemann-Ricard </p>
+          </div>
+  </div>
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="abstract" class="level1">
+<h1>Abstract</h1>
+</section>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>The project seeks to minimize the costs of operation of the municipal solid waste management service in Blantyre Malawi.</p>
+<section id="justification-and-research-questions" class="level2">
+<h2 class="anchored" data-anchor-id="justification-and-research-questions">Justification and Research Questions</h2>
+<ol type="1">
+<li>How can we model with limited data</li>
+<li>How many trucks are needed to service all skips? What would be the mileage and cost of servicing all skips without overflow?</li>
+<li>What routing schedule?</li>
+</ol>
+</section>
+</section>
+<section id="data-analysis" class="level1">
+<h1>Data analysis</h1>
+<p>In order to formulate feasible and pertinent recommendations, parameters reflecting the situation need to be calculated. Specifically, the rate at which bins are filling, so as to know the frequency at which they need to be emptied.</p>
+<section id="provided-data" class="level2">
+<h2 class="anchored" data-anchor-id="provided-data">Provided data</h2>
+<section id="set-of-skips" class="level3">
+<h3 class="anchored" data-anchor-id="set-of-skips">Set of skips</h3>
+</section>
+<section id="skips-filling-data" class="level3">
+<h3 class="anchored" data-anchor-id="skips-filling-data">Skips filling data</h3>
+<p>Filling data for a number of skips is provided. Over a certain period of time (depending on the skip), a measurement on a scale from 1-5 was taken visually every day (generally). A score between 0 and 4 indicate the estimated fullness of the skip, while a 5 means the skip was overflowing. Three of these are shown in <a href="#fig-raw">fig.&nbsp;1</a>. <a href="#fig-Naizi_inorganic_1_raw">Fig.&nbsp;1 (a)</a> shows an ideal profile for data extraction. There are not too many spikes, the ramps are discernible, and there is a good number of them to draw averages. <a href="#fig-Bangwe_inorganic_1_raw">Fig.&nbsp;1 (b)</a> presents a bigger challenge, as it is difficult to make out the difference between</p>
+<div id="fig-raw" class="quarto-layout-panel">
+<figure class="figure">
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div class="quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-Naizi_inorganic_1_raw" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/Analysis_jupyter/figures/raw/Naizi_inorganic_1_raw.png" class="img-fluid figure-img" data-ref-parent="fig-raw"></p>
+<p></p><figcaption class="figure-caption">(a) Naizi inorganic 1</figcaption><p></p>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-Bangwe_inorganic_1_raw" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/Analysis_jupyter/figures/raw/Bangwe_inorganic_1_raw.png" class="img-fluid figure-img" data-ref-parent="fig-raw"></p>
+<p></p><figcaption class="figure-caption">(b) Bangwe inorganic 1</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div class="quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-Chigumula_inorganic_2_raw" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/Analysis_jupyter/figures/raw/Chigumula_inorganic_2_raw.png" class="img-fluid figure-img" data-ref-parent="fig-raw"></p>
+<p></p><figcaption class="figure-caption">(c) Chigumula inorganic 2</figcaption><p></p>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-BCA_inorganic_2_raw" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/Analysis_jupyter/figures/raw/BCA_inorganic_2_raw.png" class="img-fluid figure-img" data-ref-parent="fig-raw"></p>
+<p></p><figcaption class="figure-caption">(d) BCA inorganic 2</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Types of raw data</figcaption><p></p>
+</figure>
+</div>
+<p><a href="#fig-raw">Fig.&nbsp;1</a> especially <a href="#fig-BCA_inorganic_2_raw">fig.&nbsp;1 (d)</a></p>
+</section>
+<section id="mzedi-arrivals" class="level3">
+<h3 class="anchored" data-anchor-id="mzedi-arrivals">Mzedi arrivals</h3>
+</section>
+</section>
+</section>
+<section id="model" class="level1">
+<h1>Model</h1>
+</section>
+<section id="model-optimization" class="level1">
+<h1>Model optimization</h1>
+</section>
+<section id="methods" class="level1">
+<h1>Methods</h1>
+<section id="site-selection" class="level2">
+<h2 class="anchored" data-anchor-id="site-selection">Site selection</h2>
+</section>
+<section id="sample-size" class="level2">
+<h2 class="anchored" data-anchor-id="sample-size">Sample Size</h2>
+</section>
+<section id="ethics" class="level2">
+<h2 class="anchored" data-anchor-id="ethics">Ethics</h2>
+</section>
+<section id="experimental-design" class="level2">
+<h2 class="anchored" data-anchor-id="experimental-design">Experimental Design</h2>
+<section id="experiment-1" class="level3">
+<h3 class="anchored" data-anchor-id="experiment-1">Experiment 1</h3>
+</section>
+<section id="experiment-2" class="level3">
+<h3 class="anchored" data-anchor-id="experiment-2">Experiment 2</h3>
+</section>
+</section>
+</section>
+<section id="results-and-discussion" class="level1">
+<h1>Results and Discussion</h1>
+<section id="discussion" class="level2">
+<h2 class="anchored" data-anchor-id="discussion">Discussion</h2>
+</section>
+<section id="tables-and-figures" class="level2">
+<h2 class="anchored" data-anchor-id="tables-and-figures">Tables and Figures</h2>
+</section>
+<section id="tables" class="level2">
+<h2 class="anchored" data-anchor-id="tables">Tables</h2>
+</section>
+<section id="figures" class="level2">
+<h2 class="anchored" data-anchor-id="figures">Figures</h2>
+</section>
+</section>
+<section id="conclusions-and-recommendations" class="level1">
+<h1>Conclusions and Recommendations</h1>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
