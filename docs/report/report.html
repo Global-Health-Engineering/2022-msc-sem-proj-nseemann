@@ -71,7 +71,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>The project seeks to minimize the costs of operation of the municipal solid waste management service in Blantyre Malawi.</p>
+<p>The project seeks to minimize the costs of operation of the municipal solid waste management service in Blantyre Malawi, while limiting overflowing of the communal skips.</p>
 <section id="justification-and-research-questions" class="level2">
 <h2 class="anchored" data-anchor-id="justification-and-research-questions">Justification and Research Questions</h2>
 <ol type="1">
@@ -86,12 +86,20 @@ ul.task-list li input[type="checkbox"] {
 <p>In order to formulate feasible and pertinent recommendations, parameters reflecting the situation need to be calculated. Specifically, the rate at which bins are filling, so as to know the frequency at which they need to be emptied.</p>
 <section id="provided-data" class="level2">
 <h2 class="anchored" data-anchor-id="provided-data">Provided data</h2>
-<section id="set-of-skips" class="level3">
-<h3 class="anchored" data-anchor-id="set-of-skips">Set of skips</h3>
+<section id="set-of-skip-locations" class="level3">
+<h3 class="anchored" data-anchor-id="set-of-skip-locations">Set of skip locations</h3>
+<p>A set of skip, assumed to be all the community skips to be serviced in Blantyre, along with GPS coordinates is given. Each skip is 7m<sup>3</sup>. Some data points have the same name, when several skips are in the same area (e.g.&nbsp;three skips in the same market). It is unknown if more than one skip can be represented by one coordinate point. Furthermore, there is no information about the intended nature of the waste (organic or inorganic). The locations of the municipal dump (Mzedi dump), the truck storage facility and the compost facility are also used.</p>
+<div id="fig-locations-skips" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/GIS/QGIS_map/figures/skips_list.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Locations of skips, dump, compost facility and truck storage</figcaption><p></p>
+</figure>
+</div>
 </section>
 <section id="skips-filling-data" class="level3">
 <h3 class="anchored" data-anchor-id="skips-filling-data">Skips filling data</h3>
-<p>Filling data for a number of skips is provided. Over a certain period of time (depending on the skip), a measurement on a scale from 1-5 was taken visually every day (generally). A score between 0 and 4 indicate the estimated fullness of the skip, while a 5 means the skip was overflowing. Three of these are shown in <a href="#fig-raw">fig.&nbsp;1</a>. <a href="#fig-Naizi_inorganic_1_raw">Fig.&nbsp;1 (a)</a> shows an ideal profile for data extraction. There are not too many spikes, the ramps are discernible, and there is a good number of them to draw averages. <a href="#fig-Bangwe_inorganic_1_raw">Fig.&nbsp;1 (b)</a> presents a bigger challenge, as it is difficult to make out the difference between</p>
+<p>Filling data for a number of skips is provided. The time series are named in the following fashion: “area+type of waste+number”. The names of the areas do not always match the ones from the set of skip locations, in addition to the ambiguity of several skips present in a certain area. The type of waste also complicates the analysis.</p>
+<p>Over a certain period of time (depending on the skip), a measurement on a scale from 1-5 was taken visually (generally) every day at some skips. A score between 0 and 4 indicate the estimated fullness of the skip, while a 5 means the skip was overflowing. Four of these are shown in <a href="#fig-raw">fig.&nbsp;2</a>. <a href="#fig-Naizi_inorganic_1_raw">Fig.&nbsp;2 (a)</a> seems to be an ideal profile for data extraction. There are not too many spikes (taken as measurement errors), the ramps are discernible, and there is a good number of them to draw averages. <a href="#fig-Bangwe_inorganic_1_raw">Fig.&nbsp;2 (b)</a> presents a bigger challenge, as it is difficult to make out the difference between measurement errors (outliers) and very fast filling of the skip. <a href="#fig-Chigumula_inorganic_2_raw">Fig.&nbsp;2 (c)</a> is a timeseries from which filling rates cannot be extracted. Finally, <a href="#fig-BCA_inorganic_2_raw">fig.&nbsp;2 (d)</a> only has one useful ramp, from which a filling rate can be computed.</p>
 <div id="fig-raw" class="quarto-layout-panel">
 <figure class="figure">
 <div class="quarto-layout-row quarto-layout-valign-top">
@@ -130,13 +138,33 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-<p></p><figcaption class="figure-caption">Figure&nbsp;1: Types of raw data</figcaption><p></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Typical skip filling time series</figcaption><p></p>
 </figure>
 </div>
-<p><a href="#fig-raw">Fig.&nbsp;1</a> especially <a href="#fig-BCA_inorganic_2_raw">fig.&nbsp;1 (d)</a></p>
 </section>
-<section id="mzedi-arrivals" class="level3">
-<h3 class="anchored" data-anchor-id="mzedi-arrivals">Mzedi arrivals</h3>
+<section id="dump-arrivals-log" class="level3">
+<h3 class="anchored" data-anchor-id="dump-arrivals-log">Dump arrivals log</h3>
+<p>A separate time series is provided. It lists arrivals at the Mzedi dump, along with the origin of the skip carried by each truck. The period of this series is 2020-12-05 to 2021-12-31. The sum of arrivals in each week during this period is shown in <a href="#fig-mzedi_arrivals">fig.&nbsp;3</a>. A sizeable gap is noticeable for almost the whole of February 2021. This is reflected in the skips filling data, where many skips were overflowing and not emptied during this period. The reason for this gap is unknown.</p>
+<div id="fig-mzedi_arrivals" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="../../src/Analysis_jupyter/figures/mzedi/weekly_arrivals.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3: Mzedi arrivals</figcaption><p></p>
+</figure>
+</div>
+</section>
+</section>
+<section id="data-analysis-1" class="level2">
+<h2 class="anchored" data-anchor-id="data-analysis-1">Data analysis</h2>
+<section id="skips-filling-data-1" class="level3">
+<h3 class="anchored" data-anchor-id="skips-filling-data-1">Skips filling data</h3>
+<p>The filling data from individual skips is used to extract an estimated filling rates. To do this, an algorithm is used to fit ramps onto the raw data. Here, the algorithm is shown for the skip named Naizi Inorganic 1.</p>
+<section id="removal-of-erroneous-measurements" class="level4">
+<h4 class="anchored" data-anchor-id="removal-of-erroneous-measurements">1. Removal of erroneous measurements</h4>
+<p>In this case, erroneous measurements are quick upward (or downward) spikes that return to the original value. In most series, those spikes interrupt ramps or can be seen in periods of overflow and cannot presently be explained by another event.</p>
+</section>
+<section id="asdlkja" class="level4">
+<h4 class="anchored" data-anchor-id="asdlkja">2. asdlkja</h4>
+</section>
 </section>
 </section>
 </section>
