@@ -144,7 +144,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="dump-arrivals-log" class="level3">
 <h3 class="anchored" data-anchor-id="dump-arrivals-log">Dump arrivals log</h3>
-<p>A separate time series is provided. It lists arrivals at the Mzedi dump, along with the origin of the skip carried by each truck. The period of this series is 2020-12-05 to 2021-12-31. The sum of arrivals in each week during this period is shown in <a href="#fig-mzedi_arrivals">fig.&nbsp;3</a>. A sizeable gap is noticeable for almost the whole of February 2021. This is reflected in the skips filling data, where many skips were overflowing and not emptied during this period. The reason for this gap is unknown.</p>
+<p>A separate time series is provided. It lists arrivals at the Mzedi dump, along with the origin of the skip carried by each truck. The origins match exactly the set of skip locations. The period of this series is 2020-12-05 to 2021-12-31. The sum of arrivals in each week during this period is shown in <a href="#fig-mzedi_arrivals">fig.&nbsp;3</a>. A sizeable gap is noticeable for almost the whole of February 2021. This is reflected in the skips filling data, where many skips were overflowing and not emptied during this period. The reason for this gap is unknown, but assumed here to be the service simply not operating.</p>
 <div id="fig-mzedi_arrivals" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="../../src/Analysis_jupyter/figures/mzedi/weekly_arrivals.png" class="img-fluid figure-img"></p>
@@ -157,13 +157,77 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="data-analysis-1">Data analysis</h2>
 <section id="skips-filling-data-1" class="level3">
 <h3 class="anchored" data-anchor-id="skips-filling-data-1">Skips filling data</h3>
-<p>The filling data from individual skips is used to extract an estimated filling rates. To do this, an algorithm is used to fit ramps onto the raw data. Here, the algorithm is shown for the skip named Naizi Inorganic 1.</p>
+<p>The filling data from individual skips is used to extract an estimated filling rates. To do this, an algorithm is used to fit ramps onto the raw data. The slope of these ramps gives the filling rate, which will be useful in determining the frequency of service. Here, the algorithm is shown for the skip named Naizi Inorganic 1. The algorithm performs a series of forward and backward passes, iterating through the time series data sequentially.</p>
 <section id="removal-of-erroneous-measurements" class="level4">
 <h4 class="anchored" data-anchor-id="removal-of-erroneous-measurements">1. Removal of erroneous measurements</h4>
-<p>In this case, erroneous measurements are quick upward (or downward) spikes that return to the original value. In most series, those spikes interrupt ramps or can be seen in periods of overflow and cannot presently be explained by another event.</p>
+<p>In this case, erroneous measurements are quick (upward or downward) spikes that return to the original value. In most series, those spikes interrupt ramps or can be seen in periods of overflow. As the source of these spiking events are unknown, they are assumed to be measurement/recording errors.</p>
 </section>
-<section id="asdlkja" class="level4">
-<h4 class="anchored" data-anchor-id="asdlkja">2. asdlkja</h4>
+<section id="ramp-tops-detection" class="level4">
+<h4 class="anchored" data-anchor-id="ramp-tops-detection">2. Ramp tops detection</h4>
+<p>Since a level 5 encompasses a wide range of quantity of waste, ramps ending in level 4 offer more precision. As such, when a rising trend reaches level 4, the ramp is ended at this point. However, if it skips level 4, the ramp continues to level 5.</p>
+<p>The following code blocks show the forward pass, which detects the top of ramps, as well as the backward pass, which brings those top points to the earliest point at which this level occured. This forward/backward approach has the advantage that it can include levels other than 4 and 5 as top levels.</p>
+<p><u>Forward pass:</u></p>
+<pre><code>BEGIN 
+INITIALIZE t=0;dt=0
+WHILE t &lt; T:
+    WHILE t + dt &lt; T:
+        IF L(t+dt+1) &gt;= L(t+dt):
+            IF L(t+dt) == 4 AND L(t+dt+1) == 5
+                ADD to top_ends
+                t = next decreasing level date
+                BREAK
+            ELSE:
+                dt++
+            END IF
+        ELSE:
+            ADD to top_ends
+            t = t+dt+1
+            BREAK
+        END IF
+    END WHILE
+END WHILE
+END</code></pre>
+<p><u>Backward pass:</u></p>
+<pre><code>BEGIN 
+    INITIALIZE t=T; dt=0
+    FOR EACH t in top_ends:
+        WHILE t - dt - 1 &gt; 0:
+            IF L(t-dt-1) &lt; L(t-dt):
+                ADD to top_beginnings
+                BREAK
+            ELSE:
+                dt++
+            END IF
+        END WHILE
+    END FOR
+END</code></pre>
+</section>
+<section id="removal-of-derating-periods" class="level4">
+<h4 class="anchored" data-anchor-id="removal-of-derating-periods">3. Removal of derating periods</h4>
+<p>Next, an effect is observed, whereby a “derating” occurs. This can be seen when the level is at 5, then it drops to 4 for a certain period, then climbs up to 5 again. This might occur for several reasons (non exhaustive list):</p>
+<ul>
+<li>Trash being burned to eliminate the overflowing waste</li>
+<li>Waste being cleaned up by another entity</li>
+<li>An error in data collection</li>
+</ul>
+<p>The top values at the end of derating periods are removed in the backward pass. (example Chigumula organic 1)</p>
+</section>
+<section id="ramp-bottoms-detection" class="level4">
+<h4 class="anchored" data-anchor-id="ramp-bottoms-detection">4. Ramp bottoms detection</h4>
+<p>Finally, the bottoms of each ramp is found by walking back from each top until a point where the next increases again. This point is assumed to be the next day after the skip was serviced, and after which the skip begins filling up again. The algorithm is:</p>
+<pre><code>BEGIN 
+    INITIALIZE t=T; dt=0
+    FOR EACH top_beginnings_no_derating:
+        WHILE t - dt &gt; 0:
+            IF L(t-dt-1) &gt; L(t-dt):
+                ADD to bottom_beginnings
+                BREAK
+            ELSE:
+                dt++
+            END IF
+        END WHILE
+    END FOR
+END</code></pre>
 </section>
 </section>
 </section>
