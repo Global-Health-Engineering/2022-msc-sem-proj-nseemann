@@ -65,7 +65,7 @@ else
     yalmiperror(sol.problem)
 end
 
-%%
+%% fit*((-1*dist_mat(dump_ind,indices_skips) 
 
 %% Functions
 % Scenarios

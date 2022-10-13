@@ -3,16 +3,17 @@
 
 clear;
 tic;
+
+%% Variables
+
+day_op_cost = 20;
 %% Distance matrix
 cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 
 %% Import distances
 
 fileID = fopen('../../data/interm_data/dist_matrix_ID_filtered.csv');
-formatSpec = '%s';
-N = 3;
-C_text = textscan(fileID,formatSpec,N,'Delimiter',',');
-
+textscan(fileID,'%s',3,'Delimiter',',');
 C = textscan(fileID,'%d %d %f','Delimiter',',');
 
 fclose(fileID);
@@ -25,12 +26,24 @@ for i = 1:length(C{1})
     dist_mat(C{1}(i),C{2}(i)) = C{3}(i);
 end
 
+%% Filtering distances
+
+dump_ind = 54; % Mzedi dump
+compost_ind = 55; % Limbe composting
+depot_ind = 56; % Storage city center
+
+indices_util = sort([dump_ind,compost_ind,depot_ind]);
+indices_skips = [1:indices_util(1)-1,indices_util(1)+1:indices_util(2)-1,indices_util(2)+1:indices_util(3)-1,indices_util(3)+1:max(max(C{1},max(C{2})))];
+
+dist_mat_no_util = dist_mat([1:indices_util(1)-1,indices_util(1)+1:indices_util(2)-1,indices_util(2)+1:indices_util(3)-1,indices_util(3)+1:max(max(C{1},max(C{2})))],[1:indices_util(1)-1,indices_util(1)+1:indices_util(2)-1,indices_util(2)+1:indices_util(3)-1,indices_util(3)+1:max(max(C{1},max(C{2})))]);
 %% Parameters
-numBins = 3;
 
-filling_rates = [0.09, 0.5, 0.3];%rand(1,numBins)/2;
+numBins = length(indices_skips);
 
-%Reduced weekly scenarios, only for two visits per week and period 1 week
+% Random but constant rates
+load('filling_rates_13_10_22.mat')%filling_rates = rand(1,numBins)/2;
+
+%% Load scenarios and relevant variables
 
 [scens,scensgaps]=create_scens();
 
@@ -39,16 +52,6 @@ scensize = size(scens);
 scenlen = scensize(1);
 T = scensize(2);
 
-dump_ind = 54; % Mzedi dump
-compost_ind = 55; % Limbe composting
-depot_ind = 56; % Storage city center
-%    d  du s1 s2 s3
-dist =[0 4 1 2 3;
-    4 0 1 3 4;
-    1 1 0 2 9;
-    2 3 2 0 5;
-    3 4 9 5 0];
-day_op_cost = 20;
 %% Decision variables
 xit = binvar(T,numBins,'full'); %if is operating on day t
 yis = binvar(scenlen, numBins,'full'); %if is assigned scenario s
@@ -63,34 +66,47 @@ day_flow = xit'-yis'*scens == 0; %Bins emptied once on days of schedule
 
 % Inequality constraints
 day_op = ot >= sum(xit,2)/numBins; %Counts operation days
-first = sum(fit,2) == ot; %Makes it so at least one is first
+first = sum(fit, 2) == ot; %Makes it so at least one is first
+minute = fit <= xit;
 
 fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
 
 % Overall constraints
-Constraints = [assign_1 day_flow fill_min day_op first];
+Constraints = [assign_1 day_flow fill_min day_op first minute];
 %% Objective function
 
-distance_diff = fit*((-1*dist(dump_ind,3:dump_ind+numBins) + dist(depot_ind,3:dump_ind+numBins)))';
-Objective = sum(sum(xit)) + sum(ot)*day_op_cost + sum(distance_diff);
-
+distance_diff = fit*((-1*dist_mat(dump_ind,indices_skips) + dist(depot_ind,indices_skips)))';
+Objective = sum(distance_diff) + sum(sum(xit))*20;%sum(sum(xit)) + sum(ot)*day_op_cost + sum(distance_diff);
 
 %% Set options for YALMIP and solver - Solve the problem
 options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1);
 sol =       optimize(Constraints,Objective,options);
 
-fprintf('Total system cost: = %d', sol.solveroutput.result.objval);
+scen_assignment = zeros(2, length(indices_util) + length(indices_skips));
+b = 1;
+value_scen_assignment = value(yis);
+for i = 1:length(scen_assignment)
+    if ismember(i,indices_util)
+        scen_assignment(1,i) = NaN;
+        scen_assignment(2,i) = NaN;
+    elseif ismember(i, indices_skips)
+        scen_assignment(1,i) = find(value_scen_assignment(:,b));
+        scen_assignment(2,i) = filling_rates(b);
+        b = b+1;
+    end
+end
+
+disp(scen_assignment)
+%fprintf('Total system cost: = %d', sol.solveroutput.result.objval);
 
 %% Analyze error flags & GET the solution
-if sol.problem ==0  
-    disp('All good');
+if sol.problem == 0  
+    disp('Finished running');
 else
     disp('Hmm, something went wrong!');
     sol.info;
     yalmiperror(sol.problem)
 end
-
-%%
 
 %% Functions
 % Scenarios
