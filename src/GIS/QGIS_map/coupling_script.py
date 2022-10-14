@@ -1,5 +1,13 @@
 from PyQt5.QtCore import QVariant
 import pandas as pd
+
+import os
+
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
+
 layer=QgsVectorLayer("public-waste-skips-blantyre-malawi.shp")
 field_names = layer.fields().names()
 features = layer.getFeatures()

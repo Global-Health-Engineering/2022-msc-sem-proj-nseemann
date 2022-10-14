@@ -41,8 +41,8 @@ dist_mat_no_util = dist_mat([1:indices_util(1)-1,indices_util(1)+1:indices_util(
 numBins = length(indices_skips);
 
 % Random but constant rates
-load('filling_rates_13_10_22.mat')%filling_rates = rand(1,numBins)/2;
-filling_rates = ones(1,53)*0.5;
+%load('filling_rates_13_10_22.mat')
+filling_rates = rand(1,numBins)/2;
 %% Load scenarios and relevant variables
 
 [scens,scensgaps]=create_scens();
@@ -76,7 +76,7 @@ Constraints = [assign_1 day_flow fill_min day_op first fit_unity];
 %% Objective function
 
 distance_diff = xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
-Objective = sum(distance_diff) + sum(sum(xit))*20 + 2000*sum(ot);%sum(sum(xit)) + sum(ot)*day_op_cost + sum(distance_diff);
+Objective = sum(distance_diff) + 20*sum(ot);%sum(sum(xit)) + sum(ot)*day_op_cost + sum(distance_diff);
 
 %% Set options for YALMIP and solver - Solve the problem
 options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1);
@@ -111,20 +111,22 @@ end
 
 %% Plot results
 current_vals = value(xit);
-current_vals_scens = [current_vals' round(rmmissing(scen_assignment(2,:))'*1000)];
+current_vals_scens = [current_vals' rmmissing(scen_assignment(1,:))'];
 for i = 1:length(indices_skips)
     %bin_ind = indices_skips(i);
     %current_val = current_vals_scens(bin_ind,:);
     [~,ind] = min(current_vals_scens(:,29));
-    disp(ind)
+    %disp(ind)
     current_val = current_vals_scens(ind,1:28);
     x = linspace(1,28,28);
     y = current_val'*i;
-    scatter(x,y);
+    scatter(x(y~=0),nonzeros(y));
     current_vals_scens(ind,:) = [];
-    disp(size(current_vals_scens))
+    %disp(current_vals_scens(:,29))
     hold on
 end
+
+toc
 %% Functions
 % Scenarios
 
