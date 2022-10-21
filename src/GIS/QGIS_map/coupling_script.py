@@ -12,8 +12,8 @@ layer=QgsVectorLayer("public-waste-skips-blantyre-malawi.shp")
 field_names = layer.fields().names()
 features = layer.getFeatures()
 layer_provider = layer.dataProvider()
-#layer_provider.addAttributes([QgsField("arrivals",QVariant.Int)])
-#layer.updateFields()
+layer_provider.addAttributes([QgsField("median_diff",QVariant.Int)])
+layer.updateFields()
 
 df_mzedi = pd.read_csv('../../../data/interm_data/mzedi_entry_skip_data_stats.csv')
 df_mzedi.set_index(df_mzedi.columns[0], inplace=True)
@@ -26,11 +26,11 @@ for f in features:
     print(name_skip)
     #length=f.geometry().length()
     try:
-        value_arrivals = int(df_mzedi.loc[name_skip]['#'])
+        value_arrivals = int(df_mzedi.loc[name_skip]['median'])
     except:
         print('passed')
         value_arrivals = ''
-    attr_value={6:value_arrivals}
+    attr_value={7:value_arrivals}
     print(attr_value)
     layer_provider.changeAttributeValues({id:attr_value})
 layer.commitChanges()

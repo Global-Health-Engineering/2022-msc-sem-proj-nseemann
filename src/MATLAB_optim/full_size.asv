@@ -11,13 +11,6 @@ cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 % Cost of operating for 1 day
 day_op_cost = 20;
 
-
-% Indices other than skips
-dump_ind = 54; % Mzedi dump
-compost_ind = 55; % Limbe composting
-depot_ind = 56; % Storage city center
-
-
 %% Import distances
 
 %Distance matrix
@@ -32,9 +25,13 @@ for i = 1:length(C{1})
     dist_mat(C{1}(i),C{2}(i)) = C{3}(i);
 end
 
-%% Filtering distances and isolating dump, composting and storage facility
 
 
+%% Filtering distances
+
+dump_ind = 54; % Mzedi dump
+compost_ind = 55; % Limbe composting
+depot_ind = 56; % Storage city center
 
 indices_util = sort([dump_ind,compost_ind,depot_ind]);
 indices_skips = [1:indices_util(1)-1,indices_util(1)+1:indices_util(2)-1,indices_util(2)+1:indices_util(3)-1,indices_util(3)+1:max(max(C{1},max(C{2})))];
