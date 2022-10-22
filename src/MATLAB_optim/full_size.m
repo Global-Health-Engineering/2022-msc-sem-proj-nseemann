@@ -4,7 +4,8 @@
 clear;
 tic;
 
-cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
+% Change to current running directory:
+%cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 
 %% Variables
 
@@ -33,9 +34,6 @@ for i = 1:length(C{1})
 end
 
 %% Filtering distances and isolating dump, composting and storage facility
-
-
-
 indices_util = sort([dump_ind,compost_ind,depot_ind]);
 indices_skips = [1:indices_util(1)-1,indices_util(1)+1:indices_util(2)-1,indices_util(2)+1:indices_util(3)-1,indices_util(3)+1:max(max(C{1},max(C{2})))];
 
@@ -45,47 +43,71 @@ dist_mat_no_util = dist_mat([1:indices_util(1)-1,indices_util(1)+1:indices_util(
 numBins = length(indices_skips);
 
 % Random but constant rates
-%load('filling_rates_13_10_22.mat')
+load('filling_rates_13_10_22.mat')
+figure()
+% Create randoms:
 filling_rates = rand(1,numBins)/2;
+
+histogram(filling_rates)
+
+ylabel('number of skips')
+xlabel('filling rate [/day]')
 %% Load scenarios and relevant variables
 
+% Load scenarios and largest gap in scenario
 [scens,scensgaps]=create_scens();
 
-scensize = size(scens);
 
-scenlen = scensize(1);
+% Get period and number of scenarios
+scensize = size(scens);
 T = scensize(2);
+scenlen = scensize(1);
 
 %% Decision variables
 xit = binvar(T,numBins,'full'); %if is operating on day t
 yis = binvar(scenlen, numBins,'full'); %if is assigned scenario s
 fit = binvar(T, numBins,'full'); %if first on day t (can have multiple)
 ot = binvar(T,1); % if operating on day t
+
 %% Constraints
-
-
 % Equality constraints
 assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
 day_flow = xit'-yis'*scens == 0; %Bins emptied once on days of schedule
 
 % Inequality constraints
 day_op = ot >= sum(xit,2)/numBins; %Counts operation days
-first = sum(fit, 2) == ot; %Makes it so at least one is first
-fit_unity = fit <= xit;
+first = sum(fit, 2) == ot; %Makes it so one skip is first in loop on each day
+fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that day
 
 fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
 
 % Overall constraints
 Constraints = [assign_1 day_flow fill_min day_op first fit_unity];
 %% Objective function
-
+% Distance travelled on the rounds
 distance_diff = xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
-Objective = sum(distance_diff) + 20*sum(ot);%sum(sum(xit)) + sum(ot)*day_op_cost + sum(distance_diff);
+% Daily operation cost
+total_op_cost = day_op_cost*sum(ot);
+Objective = sum(distance_diff) + total_op_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1);
 sol =       optimize(Constraints,Objective,options);
 
+
+%% Analyze error flags & GET the solution
+if sol.problem == 0  
+    disp('Finished running');
+else
+    disp('Hmm, something went wrong!');
+    sol.info;
+    yalmiperror(sol.problem)
+end
+
+%% Solution processing
+
+% Scen assignment to output matrix coupling the filling rate with the
+% scenario number
 scen_assignment = zeros(2, length(indices_util) + length(indices_skips));
 b = 1;
 value_scen_assignment = value(yis);
@@ -100,20 +122,9 @@ for i = 1:length(scen_assignment)
     end
 end
 
-disp(scen_assignment)
-
-%fprintf('Total system cost: = %d', sol.solveroutput.result.objval);
-
-%% Analyze error flags & GET the solution
-if sol.problem == 0  
-    disp('Finished running');
-else
-    disp('Hmm, something went wrong!');
-    sol.info;
-    yalmiperror(sol.problem)
-end
 
 %% Plot results
+figure()
 current_vals = value(xit);
 current_vals_scens = [current_vals' rmmissing(scen_assignment(1,:))'];
 for i = 1:length(indices_skips)
@@ -129,6 +140,10 @@ for i = 1:length(indices_skips)
     %disp(current_vals_scens(:,29))
     hold on
 end
+
+ylabel('Skip number')
+xlabel('Day')
+grid()
 
 toc
 %% Functions
