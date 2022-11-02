@@ -75,7 +75,37 @@ scensize = size(scens);
 T = 28;
 % Number of collections per day
 P = 2;
+
+% Makes uniform filling rates over entire period
+load('filling_rates_13_10_22.mat')
+filling_rates = [0.284, 0.285, 0.2858, 0.2859];
+filling_rates = repmat(filling_rates',1,T*P);
 scennum = scensize(1);
+
+%% Narrow relevant scenarios
+scen_cells = {};
+%if a scenarios is suitable, add the scenario vector to skip scenario cell
+for i = 1:4
+    scen_cells{i} = [];
+    current_rates_doubled = [filling_rates(i,:) filling_rates(i,:)]; %doubled for extra weekly
+    for s = 1:size(scens,1)
+        current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
+        previous = 1;
+        exceed = 0;
+        for d = find(current_scen_doubled)
+            sum_period = sum(current_rates_doubled(previous:d))/P;
+            if sum_period >= 1
+                exceed = 1;
+                break
+            end
+            previous = d + 1;
+        end
+        if exceed ~= 1
+            scen_cells{i} = [scen_cells{i}; scens(s,:)];
+        end
+    end
+end
+%scen_cells{1}
 
 %% Decision variables
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
@@ -97,7 +127,7 @@ day_t_max = 8;
 day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T*P,1).*numV_D;
 % Inequality constraints
 day_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
-first = sum(fit, 2) == ot.*numV_D; %Makes it so numV_D skip is first in loop on each day
+first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each day
 fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that day
 
 %fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
@@ -117,7 +147,7 @@ total_op_cost = day_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1);
+options =   sdpsettings('verbose',1,'solver','CUTSDP','savesolveroutput',1);
 sol =       optimize(Constraints,Objective,options);
 
 
@@ -183,6 +213,7 @@ function [scens,sensgaps] = create_scens()
       scens = [scens;repmat([ 0 0 1 0 0 0 0 0 0 1 0 0 0 0],1,4)];
       scens = [scens;repmat([ 0 0 0 1 0 0 0 0 0 0 1 0 0 0],1,4)];
       scens = [scens;repmat([ 0 0 0 0 1 0 0 0 0 0 0 1 0 0],1,4)];
+      scens = [scens;repmat([0],1,55) 1];
       sensgaps = 4;
 %     T=28;
 %     % Everyday

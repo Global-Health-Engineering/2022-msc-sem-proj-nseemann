@@ -75,14 +75,37 @@ scensize = size(scens);
 T = 28;
 % Number of collections per day
 P = 2;
-scenlen = 1; %scensize(3);
+
+% Makes uniform filling rates over entire period
+load('filling_rates_13_10_22.mat')
+filling_rates = repmat(filling_rates',1,T*P);
+
+scennum = scensize(1);
+
+%% Narrow relevant variables
+scen_cells = {};
+%if a scenarios is suitable, add the scenario vector to skip scenario cell
+for i = 1:numBins
+    scen_cells{i} = [];
+    current_rates = filling_rates(i,:);
+    for s = 1:size(scens,1)
+        current_scen_doubled = [scens(s,:) scens(s,:)];
+        previous = 1
+        for d = find(current_scen)
+            cumsum_period = cumsum(current_rates(previous:d))/P;
+            if cumsum_period >= 1
+        end
+    end
+    
+end
+scen_cells
 
 %% Decision variables
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
-yis = binvar(scenlen, numBins,'full'); %if is assigned scenario s
+yis = binvar(scennum, numBins,'full'); %if is assigned scenario s
 fit = binvar(T*P, numBins,'full'); %if first on day t at p
-ot = binvar(T*P,1); % if operating on day t at p
-numV_D = intvar(T*P,1); % Number of vehicles in operation on day
+ot = binvar(T*P,1,'full'); % if operating on day t at p
+numV_D = intvar(T*P,1,'full'); % Number of vehicles in operation on day
 
 numV = intvar(1); % Total number of vehicles
 
@@ -92,23 +115,21 @@ assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
 day_flow = xit'-yis'*scens == 0; %Bins emptied once on period of schedule
 
 
-
 day_t_max = 8;
 
-day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T,1).*numV_D;
+day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T*P,1).*numV_D;
 % Inequality constraints
 day_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
-first = sum(fit, 2) == ot.*numV_D; %Makes it so numV_D skip is first in loop on each day
+first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each day
 fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that day
 
 %fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
 
 numV_min = numV >= 1;
-numV_D_min = numV_D >= ones(T*P,1);
+numV_D_numV = zeros(T*P,1) <= numV_D <= repmat(numV,T*P,1);
 
-numV_D_max = numV_D <= repmat(numV,T*P,1); % No more truck operating on day than truck available
 % Overall constraints
-Constraints = [assign_1 day_flow fill_min day_op first fit_unity day_time numV_min numV_D_min numV_D_max];
+Constraints = [assign_1 numV_D_numV day_flow day_op first fit_unity day_time numV_min ];
 %fill_min
 %% Objective function
 % Distance travelled on the rounds
@@ -119,7 +140,7 @@ total_op_cost = day_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1);
+options =   sdpsettings('verbose',1,'solver','CUTSDP','savesolveroutput',1);
 sol =       optimize(Constraints,Objective,options);
 
 
@@ -155,7 +176,7 @@ if sol.problem == 0
         %disp(ind)
         current_val = current_vals_scens(ind,1:T*P);
         %disp([ 'current val: ' num2str(scen_assignment(1,ind))])
-        x = linspace(1,T*P,T);
+        x = linspace(1,T*P,T*P);
         y = current_val'*i;
         scatter(x(y~=0),nonzeros(y));
         current_vals_scens(ind,:) = [];
@@ -180,7 +201,11 @@ toc
 
 function [scens,sensgaps] = create_scens()
       scens = repmat([1 1 1 1 1 1 1 1 1 1 1 1 0 0],1,4);
-      scens = [scens repmat([1 0 0 0 0 0 0 1 0 0 0 0 0 0],1,4)];
+      scens = [scens;repmat([1 0 0 0 0 0 0 1 0 0 0 0 0 0],1,4)];
+      scens = [scens;repmat([ 0 1 0 0 0 0 0 0 1 0 0 0 0 0],1,4)];
+      scens = [scens;repmat([ 0 0 1 0 0 0 0 0 0 1 0 0 0 0],1,4)];
+      scens = [scens;repmat([ 0 0 0 1 0 0 0 0 0 0 1 0 0 0],1,4)];
+      scens = [scens;repmat([ 0 0 0 0 1 0 0 0 0 0 0 1 0 0],1,4)];
       sensgaps = 4;
 %     T=28;
 %     % Everyday
