@@ -198,7 +198,8 @@ end
 
 
 toc
-
+%%
+[scens,mult] = create_scens();
 %% Scenarios 1x14 double period one weekly with week multiplier/cost divisor
 
 function [scens,mult] = create_scens()
@@ -249,9 +250,20 @@ function [scens,mult] = create_scens()
             scens_intra_week = [scens_intra_week; scen_built];
         end
     end
-    size(scens_intra_week,1)
+    rem_ind = [];
+    % Filter scens so that maxgap - mingap <= 2
+    for j = 1:size(scens_intra_week,1)
+        diff_indices = diff(find([scens_intra_week(j,:) scens_intra_week(j,:)]));
+        if max(diff_indices) - min(diff_indices) > 2
+            rem_ind = [rem_ind j];
+        end
+    end
+    scens_intra_week(rem_ind,:) = [];
+    
     mult = [mult ones(1,size(scens_intra_week,1))];
     scens = [scens;scens_intra_week];
+    
+    
 end 
 
 

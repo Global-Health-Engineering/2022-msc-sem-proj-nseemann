@@ -16,7 +16,7 @@ day_op_cost = 200;
 speed_avg = 30; 
 
 % Capital cost of truck
-truck_cost = 100;
+truck_cost = 1000;
 
 % Operation cost day per truck
 truck_cost_D = 50;
@@ -72,7 +72,7 @@ load('filling_rates_13_10_22.mat')
 % Get period and number of scenarios
 scensize = size(scens);
 % Time days
-T = 28;
+T = 7;
 % Number of collections per day
 P = 2;
 
@@ -140,7 +140,7 @@ end
 %assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
 %day_flow = xit'-yis'*scens == 0; %Bins emptied once on period of schedule
 
-day_t_max = 1;
+day_t_max = 4;
 
 day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T*P,1).*numV_D;
 % Inequality constraints
@@ -166,7 +166,7 @@ Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.01);
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.005);
 sol =       optimize(Constraints,Objective,options);
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
@@ -179,9 +179,9 @@ if sol.problem == 0
     markers = ['o','*'];
     for i = 1:length(indices_skips)
         current_val = value(xit(:,i));
-        x = linspace(1,T,T*P);
+        x = linspace(0.25,T-0.25,T*P);
         y = current_val'*i;
-        scatter(x(y~=0),nonzeros(y),markers(even(i)+1));
+        scatter(x(y~=0),nonzeros(y),filling_rates(i,1)*50/0.5);
         hold on
     end
 
@@ -198,61 +198,6 @@ end
 
 
 toc
-% %% Scenarios 1x56 double period
-% 
-% function [scens,scensgaps] = create_scens()
-%     scensgaps = [];
-%     reserved_periods = [13 14 27 28 41 42 55 56]; %Sundays
-%     P = 2;
-%     T=28;
-%     % Everyday except Sunday
-%     scens = repmat([1 1 1 1 1 1 1 1 1 1 1 1 0 0],1,4);
-%     
-%     %once a month:
-%     for i = 1:T*P
-%      if ~ismember(i,reserved_periods)
-%       scens = [scens;repmat([0],1,i-1) 1 repmat([0], 1,(T*P)-i)];
-%      end
-%     end
-% 
-%     %2/month
-%     N_f = 14;
-%     for i = 1:N_f*P
-%      if ~ismember(i,reserved_periods)
-%         scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,(N_f*P)-i)],1,T*P/(N_f*P))];
-%      end
-%     end 
-% 
-%     
-%     %4/month
-%     N_f = 7;
-%     for i = 1:N_f*P
-%      if ~ismember(i,reserved_periods)
-%         scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,(N_f*P)-i)],1,T*P/(N_f*P))];
-%      end
-%     end 
-%     
-%     %2/week
-%     basis_D = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ]; %2/week
-%     basis_D = [basis_D;1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0]; %3/week
-%     basis_D = [basis_D; 1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0]; %4/week
-%     basis_D = [basis_D; 1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0]; %5/week
-%     scen_begs = [];
-%     for i =  1:size(basis_D,1)
-%         current_scen_bef = [];
-%         current_scen_aft = [];
-%         for j = 1:size(basis_D,2)
-%             current_scen_bef = [current_scen_bef basis_D(i,j) 0];
-%             current_scen_aft = [current_scen_aft 0 basis_D(i,j)];
-%         end
-%         scen_begs = [scen_begs; current_scen_bef;current_scen_aft];
-%     end
-%     scens = [scens; repmat(scen_begs,1,4)];
-%     
-%     
-% 
-% end 
-
 
 %% Scenarios 1x14 double period one weekly with week multiplier/cost divisor
 
@@ -260,7 +205,7 @@ function [scens,mult] = create_scens()
     reserved_periods = [13 14]; %Sundays
     P = 2;
     T=7;
-    % Everyday except Sunday
+    % Every period (twice a day) except Sunday
     scens = [1 1 1 1 1 1 1 1 1 1 1 1 0 0];
     mult = [1];
     
@@ -274,20 +219,22 @@ function [scens,mult] = create_scens()
          end
         end
     end
-    multipliers = repmat([1 2 3 4],1,num_new_scens/4);
-    for i = 1:num_new_scens/4
-        mult = [mult multipliers(i)];
+    for j = 1:4
+        for i = 1:num_new_scens/4
+            mult = [mult j];
+        end
     end
     
+    disp(scens);
     
-    %2/week
-    basis_D = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ]; %2/week
+    scens_intra_week = [];
+    basis_D = [1 0 0 0 0 0 0;0 1 0 0 0 0 0; 0 0 1 0 0 0 0;0 0 0 1 0 0 0; 0 0 0 0 1 0 0; 0 0 0 0 0 1 0];  
+    basis_D = [basis_D;1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ]; %2/week
     basis_D = [basis_D;1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0]; %3/week
     basis_D = [basis_D; 1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0]; %4/week
     basis_D = [basis_D; 1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0]; %5/week
     scen_built = [];
     for i =  1:size(basis_D,1)
-        disp('new basis');
         find_basis = find(basis_D(i,:));
         scen_doubled = [];
         for j = 1:size(basis_D(i,:),2)
@@ -295,18 +242,18 @@ function [scens,mult] = create_scens()
         end
         cases_bin = dec2bin(0:2^(size(find_basis,2))-1) - '0';
         for j = 1:size(cases_bin,1)
+            scen_built = scen_doubled;
             for k = 1:size(cases_bin,2)
-                scen_doubled((find_basis(j)*2)-1:(find_basis(j)*2)) = [0 1];
-                scen_built = scen_doubled;
-                scen_built((find_basis(j)*2)-1:(find_basis(j)*2)) = [cases_bin(j,k) ~cases_bin(j,k)];
+                scen_built((find_basis(k)*2)-1:(find_basis(k)*2)) = [cases_bin(j,k) ~cases_bin(j,k)];
             end
-            scens = [scens; scen_built
+            scens_intra_week = [scens_intra_week; scen_built];
         end
-        for j = 
     end
-    scens = [scens;scen_built];
+    % Filter scens soc that maxgap -
+    mult = [mult ones(1,size(scens_intra_week,1))];
+    scens = [scens;scens_intra_week];
     
-
+    
 end 
 
 
