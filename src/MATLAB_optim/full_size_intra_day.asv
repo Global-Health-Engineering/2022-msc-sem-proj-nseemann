@@ -279,7 +279,7 @@ function [scens,mult] = create_scens()
         mult = [mult multipliers(i)];
     end
     
-    disp(size(scens));
+    
     %2/week
     basis_D = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ]; %2/week
     basis_D = [basis_D;1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0]; %3/week
@@ -287,6 +287,7 @@ function [scens,mult] = create_scens()
     basis_D = [basis_D; 1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0]; %5/week
     scen_built = [];
     for i =  1:size(basis_D,1)
+        disp('new basis');
         find_basis = find(basis_D(i,:));
         scen_doubled = [];
         for j = 1:size(basis_D(i,:),2)
@@ -294,13 +295,18 @@ function [scens,mult] = create_scens()
         end
         cases_bin = dec2bin(0:2^(size(find_basis,2))-1) - '0';
         for j = 1:size(cases_bin,1)
-            scen_built = scen_doubled;
             for k = 1:size(cases_bin,2)
-                scen_built((find_basis(k)*2)-1:(find_basis(k)*2)) = [cases_bin(j,k) ~cases_bin(j,k)];
+                scen_doubled((find_basis(j)*2)-1:(find_basis(j)*2)) = [0 1];
+                scen_built = scen_doubled;
+                scen_built((find_basis(j)*2)-1:(find_basis(j)*2)) = [cases_bin(j,k) ~cases_bin(j,k)];
             end
-            scens = [scens; scen_built];
+            scens = [scens; scen_built
         end
+        for j = 
     end
+    scens = [scens;scen_built];
+    
+
 end 
 
 
