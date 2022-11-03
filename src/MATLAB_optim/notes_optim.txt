@@ -1,0 +1,23 @@
+1-week optimization
+
+- intra weekly scenarios simply accounted for
+- extra weekly scenarios coupled with a factor affecting filling rate
+	- or extra weekly scenarios not binary but in set 1/n for 1<n<4, with n in int
+	- xit (and others) int and >= scen <-- probably not
+
+Increase gap --> no big difference
+
+Input current levels and changes in constraints
+Input reporting from dump (or truck) + monitoring --> improve filling rates
+ 
+Improve filling rates data during operations --> no need for monitoring period
+
+Base on current operation trends (median gap)
+
+Monitoring strategy (calls, observers, dump arrivals)
+
+Current tasks:
+- limit excess original assignment of schedules 
+- more scens
+- results presentation
+- 

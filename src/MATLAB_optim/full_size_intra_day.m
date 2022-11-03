@@ -10,13 +10,13 @@ tic;
 %% Variables
 
 % Cost of operating one truck for 1 day
-day_op_cost = 20;
+day_op_cost = 200;
 
 % Average speed 30km/h
 speed_avg = 30; 
 
 % Capital cost of truck
-truck_cost = 1000;
+truck_cost = 100;
 
 % Operation cost day per truck
 truck_cost_D = 50;
@@ -67,7 +67,7 @@ load('filling_rates_13_10_22.mat')
 %% Load scenarios and relevant variables
 
 % Load scenarios and largest gap in scenario
-[scens,scensgaps]=create_scens();
+[scens,~]=create_scens();
 
 % Get period and number of scenarios
 scensize = size(scens);
@@ -78,26 +78,29 @@ P = 2;
 
 % Makes uniform filling rates over entire period
 load('filling_rates_13_10_22.mat')
-filling_rates = [0.284, 0.285, 0.2858, 0.2859];
+%filling_rates = [0.284, 0.285, 0.2858, 0.2859];
 filling_rates = repmat(filling_rates',1,T*P);
 scennum = scensize(1);
 
 %% Narrow relevant scenarios
 scen_cells = {};
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
-for i = 1:4
+for i = 1:numBins
     scen_cells{i} = [];
     current_rates_doubled = [filling_rates(i,:) filling_rates(i,:)]; %doubled for extra weekly
     for s = 1:size(scens,1)
         current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
         previous = 1;
         exceed = 0;
+        sum_period = [];
+        k = 1;
         for d = find(current_scen_doubled)
-            sum_period = sum(current_rates_doubled(previous:d))/P;
-            if sum_period >= 1
+            sum_period = [sum_period sum(current_rates_doubled(previous:d))/P];
+            if sum_period(end) >= 1
                 exceed = 1;
                 break
             end
+            k = k+1;
             previous = d + 1;
         end
         if exceed ~= 1
@@ -105,24 +108,39 @@ for i = 1:4
         end
     end
 end
-%scen_cells{1}
+scen_cells
+
 
 %% Decision variables
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
-yis = binvar(scennum, numBins,'full'); %if is assigned scenario s
+
+yis = {};
+for l = 1:length(scen_cells)
+    yis{l} = binvar(size(scen_cells{l},1), 1,'full'); %if l is assigned scenario in subset
+end
+
 fit = binvar(T*P, numBins,'full'); %if first on day t at p
 ot = binvar(T*P,1,'full'); % if operating on day t at p
 numV_D = intvar(T*P,1,'full'); % Number of vehicles in operation on day
 
 numV = intvar(1); % Total number of vehicles
 
-% Constraints
+%% Constraints
 % Equality constraints
-assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
-day_flow = xit'-yis'*scens == 0; %Bins emptied once on period of schedule
+assign_1 = [];
+for l = 1:length(scen_cells)
+    assign_1 = [assign_1 sum(yis{l})==1];
+end
 
+day_flow = [];
+for l = 1:length(scen_cells)
+    day_flow = [day_flow xit(:,l)'-yis{l}'*scen_cells{l}==0];
+end
 
-day_t_max = 8;
+%assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
+%day_flow = xit'-yis'*scens == 0; %Bins emptied once on period of schedule
+
+day_t_max = 1;
 
 day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T*P,1).*numV_D;
 % Inequality constraints
@@ -147,47 +165,23 @@ total_op_cost = day_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
-options =   sdpsettings('verbose',1,'solver','CUTSDP','savesolveroutput',1);
+% CUTSDP or gurobi
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.005);
 sol =       optimize(Constraints,Objective,options);
-
-
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
     disp('Finished running');
-        %% Solution processing
-    % Scen assignment to output matrix coupling the filling rate with the
-    % scenario number
-    scen_assignment = zeros(2, length(indices_util) + length(indices_skips));
-    b = 1;
-    value_scen_assignment = value(yis);
-    for i = 1:length(scen_assignment)
-        if ismember(i,indices_util)
-            scen_assignment(1,i) = NaN;
-            scen_assignment(2,i) = NaN;
-        elseif ismember(i, indices_skips)
-            scen_assignment(1,i) = find(value_scen_assignment(:,b),1);
-            scen_assignment(2,i) = filling_rates(b);
-            b = b+1;
-        end
-    end
+%% Solution processing
 
     %% Plot results !!! the y axis is not the bin number but the nth smallest scenario index !!!
     figure()
     current_vals = value(xit);
-    current_vals_scens = [current_vals' rmmissing(scen_assignment(1,:))'];
-    disp(current_vals_scens)
+    markers = ['o','*'];
     for i = 1:length(indices_skips)
-        %bin_ind = indices_skips(i);
-        %current_val = current_vals_scens(bin_ind,:);
-        [~,ind] = min(current_vals_scens(:,57)); 
-        %disp(ind)
-        current_val = current_vals_scens(ind,1:T*P);
-        %disp([ 'current val: ' num2str(scen_assignment(1,ind))])
-        x = linspace(1,T*P,T*P);
+        current_val = value(xit(:,i));
+        x = linspace(1,T,T*P);
         y = current_val'*i;
-        scatter(x(y~=0),nonzeros(y));
-        current_vals_scens(ind,:) = [];
-        %disp(current_vals_scens(:,29))
+        scatter(x(y~=0),nonzeros(y),markers(even(i)+1));
         hold on
     end
 
@@ -204,148 +198,59 @@ end
 
 
 toc
-%% Scenarios 1x28 basics
+%% Scenarios 1x56 double period
 
-function [scens,sensgaps] = create_scens()
-      scens = repmat([1 1 1 1 1 1 1 1 1 1 1 1 0 0],1,4);
-      scens = [scens;repmat([1 0 0 0 0 0 0 1 0 0 0 0 0 0],1,4)];
-      scens = [scens;repmat([ 0 1 0 0 0 0 0 0 1 0 0 0 0 0],1,4)];
-      scens = [scens;repmat([ 0 0 1 0 0 0 0 0 0 1 0 0 0 0],1,4)];
-      scens = [scens;repmat([ 0 0 0 1 0 0 0 0 0 0 1 0 0 0],1,4)];
-      scens = [scens;repmat([ 0 0 0 0 1 0 0 0 0 0 0 1 0 0],1,4)];
-      scens = [scens;repmat([0],1,55) 1];
-      sensgaps = 4;
-%     T=28;
-%     % Everyday
-%     sensgaps = [1/2];
-%     scens = repmat([1 1 1 1 1 1 0],1,4);
-%     
-%      %once a month:
-%      N_f = 28;
-%      for i = 1:N_f
-%          if rem(i,7) ~= 0
-%              sensgaps = [sensgaps 1/N_f];
-%             scens = [scens; [ repmat([0],1,i-1) 1 repmat([0], 1,N_f-i)]];
-%          end
-%      end
-%      %2/month
-%      N_f = 14;
-%      for i = 1:N_f
-%          if rem(i,7) ~= 0
-%              sensgaps = [sensgaps 1/N_f];
-%             scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,N_f-i)],1,T/N_f)];
-%          end
-%      end 
-%      
-%      %4/month
-%      N_f = 7;
-%      for i = 1:N_f
-%          if rem(i,7) ~= 0
-%              sensgaps = [sensgaps 1/N_f];
-%             scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,N_f-i)],1,T/N_f)];
-%          end
-%      end 
-%      
-%      %2/week
-%      basis = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ];
-%      scens = [scens; repmat(basis,1,4)];
-%      for i = 1:5
-%          sensgaps=[sensgaps 1/3];
-%      end
-%      
-%      %3/week
-%      basis = [1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0];
-%      scens = [scens; repmat(basis,1,4)];
-%      for i = 1:4
-%          sensgaps=[sensgaps 1/3];
-%      end
-%      
-%      % 4/week
-%      basis = [1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0];
-%      scens = [scens; repmat(basis,1,4)];
-%      for i = 1:3
-%          sensgaps=[sensgaps 1/2];
-%      end
-%      
-%      % 5/week
-%      basis = [1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0];
-%      scens = [scens; repmat(basis,1,4)];
-%      for i = 1:4
-%          sensgaps=[sensgaps 1/2];
-%      end
-%      % 6/week : already at the top!
-     
-end 
+%%
 
-%% Scenarios 2x28 limited range
-
-function [scens,sensgaps] = create_scens_enhanced()
-    %protocol:
-    %create cell array with 2x28 entries for each scenarios
-    %create array with N_scen scenarios chatacteristics
-    %take into account Sunday might have different filling rate than during
-    %the week
+function [scens,scensgaps] = create_scens()
+    scensgaps = [];
+    reserved_periods = [13 14 27 28 41 42 55 56]; %Sundays
+    P = 2;
     T=28;
+    % Everyday except Sunday
+    scens = repmat([1 1 1 1 1 1 1 1 1 1 1 1 0 0],1,4);
     
-    % Everyday
-    sensgaps = [1/2];
-    scens = repmat([1 1 1 1 1 1 0; 0 0 0 0 0 0 0],1,4);
-    scens = [scensrepmat([1 1 1 1 1 1 0; 0 0 0 0 0 0 0],1,4)];
+    %once a month:
+    for i = 1:T*P
+     if ~ismember(i,reserved_periods)
+      scens = [scens;repmat([0],1,i-1) 1 repmat([0], 1,(T*P)-i)];
+     end
+    end
+
+    %2/month
+    N_f = 14;
+    for i = 1:N_f*P
+     if ~ismember(i,reserved_periods)
+        scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,(N_f*P)-i)],1,T*P/(N_f*P))];
+     end
+    end 
+
     
-     %once a month:
-     N_f = 28;
-     
-     for i = 1:N_f
-         if rem(i,7) ~= 0
-             sensgaps = [sensgaps 1/N_f];
-            scens = [scens; [ repmat([0],1,i-1) 1 repmat([0], 1,N_f-i)]];
-         end
+    %4/month
+    N_f = 7;
+    for i = 1:N_f*P
+     if ~ismember(i,reserved_periods)
+        scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,(N_f*P)-i)],1,T*P/(N_f*P))];
      end
-     %2/month
-     N_f = 14;
-     for i = 1:N_f
-         if rem(i,7) ~= 0
-             sensgaps = [sensgaps 1/N_f];
-            scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,N_f-i)],1,T/N_f)];
-         end
-     end 
-     
-     %4/month
-     N_f = 7;
-     for i = 1:N_f
-         if rem(i,7) ~= 0
-             sensgaps = [sensgaps 1/N_f];
-            scens = [scens; repmat([repmat([0],1,i-1) 1 repmat([0],1,N_f-i)],1,T/N_f)];
-         end
-     end 
-     
-     %2/week
-     basis = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ];
-     scens = [scens; repmat(basis,1,4)];
-     for i = 1:5
-         sensgaps=[sensgaps 1/3];
-     end
-     
-     %3/week
-     basis = [1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0];
-     scens = [scens; repmat(basis,1,4)];
-     for i = 1:4
-         sensgaps=[sensgaps 1/3];
-     end
-     
-     % 4/week
-     basis = [1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0];
-     scens = [scens; repmat(basis,1,4)];
-     for i = 1:3
-         sensgaps=[sensgaps 1/2];
-     end
-     
-     % 5/week
-     basis = [1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0];
-     scens = [scens; repmat(basis,1,4)];
-     for i = 1:4
-         sensgaps=[sensgaps 1/2];
-     end
-     % 6/week : already at the top!
-     
+    end 
+    
+    %2/week
+    basis_D = [1 0 0 1 0 0 0;0 1 0 0 0 1 0; 1 0 0 0 1 0 0;  0 0 1 0 0 1 0; 0 1 0 0 1 0 0 ]; %2/week
+    basis_D = [basis_D;1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0]; %3/week
+    basis_D = [basis_D; 1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0]; %4/week
+    basis_D = [basis_D; 1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0]; %5/week
+    scen_begs = [];
+    for i =  1:size(basis_D,1)
+        current_scen_bef = [];
+        current_scen_aft = [];
+        for j = 1:size(basis_D,2)
+            current_scen_bef = [current_scen_bef basis_D(i,j) 0];
+            current_scen_aft = [current_scen_aft 0 basis_D(i,j)];
+        end
+        scen_begs = [scen_begs; current_scen_bef;current_scen_aft];
+    end
+    scens = [scens; repmat(scen_begs,1,4)];
+    
+    
+
 end 
