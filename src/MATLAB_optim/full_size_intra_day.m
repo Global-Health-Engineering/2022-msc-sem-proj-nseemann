@@ -83,10 +83,11 @@ filling_rates = repmat(filling_rates',1,T*P);
 scennum = scensize(1);
 
 %% Narrow relevant scenarios
-scen_cells = {};
+scen_cells = [];
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
 for i = 1:numBins
-    scen_cells{i} = [];
+    scen_cells{i,1} = [];
+    scen_cells{i,2} = [];
     current_rates_doubled = [filling_rates(i,:) filling_rates(i,:)]; %doubled for extra weekly
     for s = 1:size(scens,1)
         current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
@@ -95,21 +96,21 @@ for i = 1:numBins
         sum_period = [];
         k = 1;
         for d = find(current_scen_doubled)
-            sum_period = [sum_period sum(current_rates_doubled(previous:d))/P];
+            sum_period = [sum_period sum(current_rates_doubled(previous:d)*mult(s))/P];
             if sum_period(end) >= 1
                 exceed = 1;
                 break
             end
             k = k+1;
             previous = d + 1;
-        end
+        end 
         if exceed ~= 1
-            scen_cells{i} = [scen_cells{i}; scens(s,:)];
+            scen_cells{i,1} = [scen_cells{i}; scens(s,:)];
+            scen_cells{i,2} = [scen_cells{i,2}; mult(s)];
         end
     end
 end
 scen_cells
-
 
 %% Decision variables
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
@@ -199,7 +200,8 @@ end
 
 toc
 %%
-[scens,mult] = create_scens();
+% [scens,mult] = create_scens();
+% size(scens)
 %% Scenarios 1x14 double period one weekly with week multiplier/cost divisor
 
 function [scens,mult] = create_scens()
@@ -262,8 +264,7 @@ function [scens,mult] = create_scens()
     
     mult = [mult ones(1,size(scens_intra_week,1))];
     scens = [scens;scens_intra_week];
-    
-    
+
 end 
 
 
