@@ -10,7 +10,7 @@ tic;
 %% Variables
 
 % Cost of operating one truck for 1 day
-period_op_cost = 200;
+period_op_cost = 20;
 
 % Average speed 30km/h
 speed_avg = 30; 
@@ -76,18 +76,28 @@ T = 7;
 % Number of collections periods per day
 P = 2;
 
+% maximum number of additional bins
+set_add_bins = 2;
+
+% additional bins only considered for more or equal than per_week_consider services
+% under current service
+per_week_consider = 3;
+
 % Makes uniform filling rates over entire period
-load('filling_rates_13_10_22.mat')
+load('filling_rates_13_10_22.mat');
 filling_rates = repmat(filling_rates',1,T*P);
-%filling_rates(1,:) = [repmat([1.2],1, 11) repmat([0.3], 1,3)];
+filling_rates(1,:) = [repmat([0.66],1, 14)];% repmat([0.3], 1,3)];
 scennum = scensize(1);
 
 %% Narrow relevant scenarios
 scen_cells = {};
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
+excessive = [];
+excess_bins =[]; 
 for i = 1:numBins
     scen_cells{i,1} = [];
-    scen_cells{i,4} = [];
+    scen_cells{i,2} = [];
+    scen_cells{i,3} = [];
     current_rates_doubled = [filling_rates(i,:) filling_rates(i,:)]; %doubled for extra weekly
     for s = 1:size(scens,1)
         current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
@@ -105,10 +115,39 @@ for i = 1:numBins
             previous = d + 1;
         end 
         if exceed ~= 1
-            scen_cells{i,1} = [scen_cells{i}; s]; %scens(s,:) <-- old entire scen
-            scen_cells{i,4} = [scen_cells{i,4}; divis(s)];
+            scen_cells{i,1} = [scen_cells{i,1}; s]; %scens(s,:) <-- old entire scen
+            scen_cells{i,2} = [scen_cells{i,2}; 0];
+            scen_cells{i,3} = [scen_cells{i,3}; divis(s)];
         end
     end
+    for add_bins = 1:set_add_bins
+        %Scens with more than per_week_consider in a week
+        if min(sum(scens(scen_cells{i,1},:),2).*scen_cells{i,3}) >= per_week_consider 
+            current_rates_doubled = [filling_rates(i,:)./(1+add_bins) filling_rates(i,:)./(1+add_bins)]; %doubled for extra weekly
+            excess_bins = [excess_bins; i add_bins filling_rates(i,1)./(1+add_bins)];
+            for s = 1:size(scens,1)
+                current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
+                previous = 1;
+                exceed = 0;
+                sum_period = [];
+                k = 1;
+                for d = find(current_scen_doubled)
+                    sum_period = [sum_period sum(current_rates_doubled(previous:d)*mult(s))/P];
+                    if sum_period(end) >= 1
+                        exceed = 1;
+                        break
+                    end
+                    k = k+1;
+                    previous = d + 1;
+                end 
+                if exceed ~= 1
+                    scen_cells{i,1} = [scen_cells{i,1}; s]; %scens(s,:) <-- old entire scen
+                    scen_cells{i,2} = [scen_cells{i,2}; add_bins];
+                    scen_cells{i,3} = [scen_cells{i,3}; divis(s)];
+                end
+            end
+        end
+    end 
 end
 
 %% Decision variables
@@ -163,19 +202,24 @@ Constraints = [assign_1 numV_D_numV day_flow period_op first fit_unity period_ti
 % Divisors by skip
 divis_vect = [];
 for l = 1:size(scen_cells,1)
-   divis_vect = [divis_vect yis{l}'*scen_cells{l,4}];
+   divis_vect = [divis_vect yis{l}'*scen_cells{l,3}];
+end
+
+add_bins_vect = [];
+for l = 1:size(scen_cells,1)
+   add_bins_vect = [add_bins_vect yis{l}'*scen_cells{l,2}];
 end
 
 % Distance travelled on the rounds
-distance_diff = sum(20*divis_vect) +  xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
+distance_diff = 20*sum(divis_vect) +  xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
 % Daily operation cost
-capital_cost =  truck_cost*numV;
+capital_cost =  200*sum(add_bins_vect) + truck_cost*numV;
 total_op_cost = period_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.01);
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.005);
 sol =       optimize(Constraints,Objective,options);
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
@@ -183,17 +227,38 @@ if sol.problem == 0
 %% Solution processing
 
     %% Plot results !!! the y axis is not the bin number but the nth smallest scenario index !!!
+    close('all')
+
     figure()
     current_vals = value(xit);
-    markers = ['o','*'];
+    markers = ['.','*','x','+'];
+    legend_group = zeros(1,4);
     for i = 1:length(indices_skips)
+        extra_period = value(yis{i}).'*(1./scen_cells{i,3});
         current_val = value(xit(:,i));
         x = linspace(0.25,T-0.25,T*P);
         y = current_val'*i;
-        scatter(x(y~=0),nonzeros(y),filling_rates(i,1)*50/0.5);
+       
+        current_scatter = scatter(x(y~=0),nonzeros(y),markers(extra_period),'k');%filling_rates(i,1)*50/0.5);
+        if ~legend_group(extra_period)
+            legend_group(extra_period) = current_scatter;
+        end
         hold on
     end
+    xlim([0 7])
+    legend(legend_group,{'1','2','3','4'});
+    xticks([0 1 2 3 4 5 6 7])
+    xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
+    ax = gca;
+    ax.LineWidth = 0.5;
+    set(gca, 'YGrid', 'on', 'XGrid', 'off')
+    ax.GridLineStyle = '-';
+    ax.GridColor = 'k';
+    ax.GridAlpha = 1;
+    ax.YAxis.MinorTickValues = 0:60;
+    grid minor
 
+    
 
     ylabel('Skip number')
     xlabel('Day')
@@ -232,7 +297,7 @@ function [scens,mult] = create_scens()
         end
     end
     
-    disp(scens);
+    %disp(scens);
     
     scens_intra_week = [];
     basis_D = [1 0 0 0 0 0 0;0 1 0 0 0 0 0; 0 0 1 0 0 0 0;0 0 0 1 0 0 0; 0 0 0 0 1 0 0; 0 0 0 0 0 1 0];  
@@ -240,6 +305,7 @@ function [scens,mult] = create_scens()
     basis_D = [basis_D;1 0 1 0 1 0 0; 0 1 0 1 0 1 0; 1 0 0 1 0 1 0; 1 0 1 0 0 1 0]; %3/week
     basis_D = [basis_D; 1 0 1 0 1 1 0; 1 1 0 1 0 1 0; 1 0 1 1 0 1 0]; %4/week
     basis_D = [basis_D; 1 0 1 1 1 1 0; 1 1 0 1 1 1 0; 1 1 1 0 1 1 0; 1 1 1 1 0 1 0]; %5/week
+    basis_D = [basis_D; 1 1 1 1 1 1 0;]; %6/week
     scen_built = [];
     for i =  1:size(basis_D,1)
         find_basis = find(basis_D(i,:));
