@@ -24,7 +24,7 @@ km_cost = 0.5;
 
 % Capital cost of buying one skip
 skip_add_cost = 0;% 300;
-max_add_bins = 0;
+max_add_bins = 100;
 
 % Indices other than skips
 dump_ind = 54; % Mzedi dump
@@ -165,6 +165,7 @@ for i = 1:numBins
 end
 
 %% Decision variables
+%SHOULD XIT HAVE THE DIMENSIONS INCLUDING EXTRA SKIPS? PROBABLY
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
 
 yis = {};
@@ -185,16 +186,21 @@ assign_1 = []; %Only one scenario within allowed scenario per skip
 for l = 1:size(scen_cells,1)
     assign_1 = [assign_1 sum(yis{l})==1];
 end
+% NORMAL CONSTRAINT HERE FOR SCENARIO SELECTION
 
 day_flow = []; %Skips emptied only on periods assigned by scenario
 for l = 1:size(scen_cells,1)
     day_flow = [day_flow xit(:,l)'-yis{l}'*scens(scen_cells{l,1},:)==0];
 end
+%DAY FLOW CONSTRAINT IMPLIES DEPENDENT ON MATCHING SKIP
+%IF MATCHING ORIGINAL SKIP IS NOT SELECTED, XIT NOT ENFORCED AND GOES TO 0
+%FOR ALL
 
 % Inequality constraints
 
 % Ensure period time is not exceeded
 period_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(period_t_max,T*P,1).*numV_D;
+
 
 period_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
 first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each period
