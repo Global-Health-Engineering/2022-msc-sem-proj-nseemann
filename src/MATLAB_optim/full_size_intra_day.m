@@ -9,20 +9,22 @@ tic;
 
 %% Variables
 
-% Cost of operating one truck for 1 day
-period_op_cost = 20;
+% Cost of operating one truck for 1 day (assume labour costs)
+period_op_cost = 4.5;
 
 % Average speed 30km/h
 speed_avg = 30; 
 
-% Capital cost of truck
-truck_cost = 500;
+% Capital cost of truck / maximum number of trucks
+truck_cost = 0;
+max_truck = 2;
 
-% Operation cost day per truck
-truck_cost_D = 50;
+% Distance cost
+km_cost = 0.5;
 
 % Capital cost of buying one skip
-skip_cost = 200;
+skip_add_cost = 0;% 300;
+max_add_bins = 0;
 
 % Indices other than skips
 dump_ind = 54; % Mzedi dump
@@ -76,7 +78,7 @@ T = 7;
 % Number of collections periods per day
 P = 2;
 
-% maximum number of additional bins
+% maximum number of additional bins at each bin
 set_add_bins = 2;
 
 % additional bins only considered for more or equal than per_week_consider services
@@ -93,7 +95,7 @@ scennum = scensize(1);
 scen_cells = {};
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
 excessive = [];
-excess_bins =[]; 
+excess_bins = []; 
 for i = 1:numBins
     scen_cells{i,1} = [];
     scen_cells{i,2} = [];
@@ -177,7 +179,7 @@ for l = 1:size(scen_cells,1)
     day_flow = [day_flow xit(:,l)'-yis{l}'*scens(scen_cells{l,1},:)==0];
 end
 
-period_t_max = 4;
+period_t_max = 3;
 
 
 % Inequality constraints
@@ -191,11 +193,17 @@ fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating o
 
 %fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
 
-numV_min = numV >= 1;
+numV_const = 1<= numV <= max_truck;
 numV_D_numV = zeros(T*P,1) <= numV_D <= repmat(numV,T*P,1);
 
+total_added_skips = 0;
+for l = 1:size(scen_cells,1)
+   total_added_skips = total_added_skips + yis{l}'*scen_cells{l,2};
+end
+
+add_skip_max = total_added_skips <= max_add_bins;
 % Overall constraints
-Constraints = [assign_1 numV_D_numV day_flow period_op first fit_unity period_time numV_min ];
+Constraints = [assign_1 numV_D_numV day_flow period_op first fit_unity period_time numV_const add_skip_max];
 %fill_min
 %% Objective function
 
@@ -213,8 +221,8 @@ end
 % Distance travelled on the rounds
 distance_diff = 20*sum(divis_vect) +  xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
 % Daily operation cost
-capital_cost =  200*sum(add_bins_vect) + truck_cost*numV;
-total_op_cost = period_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
+capital_cost =  skip_add_cost*sum(add_bins_vect) + truck_cost*numV;
+total_op_cost = period_op_cost*sum(ot);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
