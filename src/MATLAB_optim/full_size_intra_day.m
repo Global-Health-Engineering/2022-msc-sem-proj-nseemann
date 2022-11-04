@@ -10,13 +10,13 @@ tic;
 %% Variables
 
 % Cost of operating one truck for 1 day
-day_op_cost = 200;
+period_op_cost = 200;
 
 % Average speed 30km/h
 speed_avg = 30; 
 
 % Capital cost of truck
-truck_cost = 1000;
+truck_cost = 500;
 
 % Operation cost day per truck
 truck_cost_D = 50;
@@ -68,26 +68,26 @@ load('filling_rates_13_10_22.mat')
 
 % Load scenarios and largest gap in scenario
 [scens,mult]=create_scens();
-
+divis = 1./mult;
 % Get period and number of scenarios
 scensize = size(scens);
 % Time days
 T = 7;
-% Number of collections per day
+% Number of collections periods per day
 P = 2;
 
 % Makes uniform filling rates over entire period
 load('filling_rates_13_10_22.mat')
-%filling_rates = [0.284, 0.285, 0.2858, 0.2859];
 filling_rates = repmat(filling_rates',1,T*P);
+%filling_rates(1,:) = [repmat([1.2],1, 11) repmat([0.3], 1,3)];
 scennum = scensize(1);
 
 %% Narrow relevant scenarios
-scen_cells = [];
+scen_cells = {};
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
 for i = 1:numBins
     scen_cells{i,1} = [];
-    scen_cells{i,2} = [];
+    scen_cells{i,4} = [];
     current_rates_doubled = [filling_rates(i,:) filling_rates(i,:)]; %doubled for extra weekly
     for s = 1:size(scens,1)
         current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
@@ -105,19 +105,18 @@ for i = 1:numBins
             previous = d + 1;
         end 
         if exceed ~= 1
-            scen_cells{i,1} = [scen_cells{i}; scens(s,:)];
-            scen_cells{i,2} = [scen_cells{i,2}; mult(s)];
+            scen_cells{i,1} = [scen_cells{i}; s]; %scens(s,:) <-- old entire scen
+            scen_cells{i,4} = [scen_cells{i,4}; divis(s)];
         end
     end
 end
-scen_cells
 
 %% Decision variables
 xit = binvar(T*P,numBins,'full'); %if is operating on day t at period p
 
 yis = {};
-for l = 1:length(scen_cells)
-    yis{l} = binvar(size(scen_cells{l},1), 1,'full'); %if l is assigned scenario in subset
+for l = 1:size(scen_cells,1)
+    yis{l} = binvar(size(scen_cells{l,1},1), 1,'full'); %if l is assigned scenario in subset
 end
 
 fit = binvar(T*P, numBins,'full'); %if first on day t at p
@@ -128,26 +127,28 @@ numV = intvar(1); % Total number of vehicles
 
 %% Constraints
 % Equality constraints
-assign_1 = [];
-for l = 1:length(scen_cells)
+
+assign_1 = []; %Only one scenario within allowed scenario per skip
+for l = 1:size(scen_cells,1)
     assign_1 = [assign_1 sum(yis{l})==1];
 end
 
-day_flow = [];
-for l = 1:length(scen_cells)
-    day_flow = [day_flow xit(:,l)'-yis{l}'*scen_cells{l}==0];
+day_flow = []; %Skips emptied only on periods assigned by scenario
+for l = 1:size(scen_cells,1)
+    day_flow = [day_flow xit(:,l)'-yis{l}'*scens(scen_cells{l,1},:)==0];
 end
 
-%assign_1 = sum(yis) == 1; % Assigns one scenario to each skip
-%day_flow = xit'-yis'*scens == 0; %Bins emptied once on period of schedule
+period_t_max = 4;
 
-day_t_max = 4;
 
-day_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(day_t_max,T*P,1).*numV_D;
 % Inequality constraints
-day_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
-first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each day
-fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that day
+
+% Ensure period time is not exceeded
+period_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(period_t_max,T*P,1).*numV_D;
+
+period_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
+first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each period
+fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that period
 
 %fill_min = scensgaps*yis >= filling_rates; %All bins at least on schedule
 
@@ -155,19 +156,26 @@ numV_min = numV >= 1;
 numV_D_numV = zeros(T*P,1) <= numV_D <= repmat(numV,T*P,1);
 
 % Overall constraints
-Constraints = [assign_1 numV_D_numV day_flow day_op first fit_unity day_time numV_min ];
+Constraints = [assign_1 numV_D_numV day_flow period_op first fit_unity period_time numV_min ];
 %fill_min
 %% Objective function
+
+% Divisors by skip
+divis_vect = [];
+for l = 1:size(scen_cells,1)
+   divis_vect = [divis_vect yis{l}'*scen_cells{l,4}];
+end
+
 % Distance travelled on the rounds
-distance_diff = xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
+distance_diff = sum(20*divis_vect) +  xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
 % Daily operation cost
 capital_cost =  truck_cost*numV;
-total_op_cost = day_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
+total_op_cost = period_op_cost*sum(ot) + sum(truck_cost_D*numV_D);
 Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.005);
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.01);
 sol =       optimize(Constraints,Objective,options);
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
@@ -196,14 +204,11 @@ else
     yalmiperror(sol.problem)
 end
 
-
-
-toc
+toc;
 %%
 % [scens,mult] = create_scens();
 % size(scens)
 %% Scenarios 1x14 double period one weekly with week multiplier/cost divisor
-
 function [scens,mult] = create_scens()
     reserved_periods = [13 14]; %Sundays
     P = 2;
@@ -211,7 +216,6 @@ function [scens,mult] = create_scens()
     % Every period (twice a day) except Sunday
     scens = [1 1 1 1 1 1 1 1 1 1 1 1 0 0];
     mult = [1];
-    
     %once every 4,3,2,1 weeks:
     num_new_scens = 0;
     for j = 1:4
@@ -264,7 +268,4 @@ function [scens,mult] = create_scens()
     
     mult = [mult ones(1,size(scens_intra_week,1))];
     scens = [scens;scens_intra_week];
-
 end 
-
-

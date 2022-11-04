@@ -20,4 +20,5 @@ Current tasks:
 - limit excess original assignment of schedules 
 - more scens
 - results presentation
-- 
+- for skips with a limited number of scens, give alternative scenarios with additionals skips
+        (simply divide filling rates homogeneously)
