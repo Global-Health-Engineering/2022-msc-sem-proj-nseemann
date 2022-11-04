@@ -85,6 +85,8 @@ set_add_bins = 2;
 % under current service
 per_week_consider = 3;
 
+period_t_max = 4;
+
 % Makes uniform filling rates over entire period
 load('filling_rates_13_10_22.mat');
 filling_rates = repmat(filling_rates',1,T*P);
@@ -122,6 +124,16 @@ for i = 1:numBins
             scen_cells{i,3} = [scen_cells{i,3}; divis(s)];
         end
     end
+    % if extra weekly, only keep the biggest one and delete all other
+    % scenarios
+    max_extra_period = 1./min(scen_cells{i,3});
+    if max_extra_period > 1
+        scen_cells{i,1} = scen_cells{i,1}(scen_cells{i,3} == min(scen_cells{i,3}));
+        scen_cells{i,2} = scen_cells{i,2}(scen_cells{i,3} == min(scen_cells{i,3}));
+        scen_cells{i,3} = scen_cells{i,3}(scen_cells{i,3} == min(scen_cells{i,3}));
+    end
+    
+    % Adding scenarios where we add bins
     for add_bins = 1:set_add_bins
         %Scens with more than per_week_consider in a week
         if min(sum(scens(scen_cells{i,1},:),2).*scen_cells{i,3}) >= per_week_consider 
@@ -179,9 +191,6 @@ for l = 1:size(scen_cells,1)
     day_flow = [day_flow xit(:,l)'-yis{l}'*scens(scen_cells{l,1},:)==0];
 end
 
-period_t_max = 3;
-
-
 % Inequality constraints
 
 % Ensure period time is not exceeded
@@ -217,9 +226,18 @@ add_bins_vect = [];
 for l = 1:size(scen_cells,1)
    add_bins_vect = [add_bins_vect yis{l}'*scen_cells{l,2}];
 end
-
+for l = 1:size(scen_cells,1)
+    if(sum(scen_cells{l,3}) == length(scen_cells{l,3}))
+        xit_adj(:,l) = xit(:,l);
+        fit_adj(:,l) = fit(:,l);
+    else
+        xit_adj(:,l) = xit(:,l).*scen_cells{l,3}(1);
+        fit_adj(:,l) = fit(:,l).*scen_cells{l,3}(1);
+    end
+end
+%%
 % Distance travelled on the rounds
-distance_diff = 20*sum(divis_vect) +  xit*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit')' + fit*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))';
+distance_diff = km_cost*(xit_adj*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit_adj')' + fit_adj*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))');
 % Daily operation cost
 capital_cost =  skip_add_cost*sum(add_bins_vect) + truck_cost*numV;
 total_op_cost = period_op_cost*sum(ot);
@@ -227,7 +245,7 @@ Objective = sum(distance_diff) + total_op_cost + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.005);
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.0005);
 sol =       optimize(Constraints,Objective,options);
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
@@ -254,7 +272,8 @@ if sol.problem == 0
         hold on
     end
     xlim([0 7])
-    legend(legend_group,{'1','2','3','4'});
+%     lgd=legend(legend_group(2:4),{'2','3','4'});
+%     lgd.Title.String = 'week periodicity';
     xticks([0 1 2 3 4 5 6 7])
     xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
     ax = gca;
