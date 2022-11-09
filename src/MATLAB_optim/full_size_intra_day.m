@@ -3,6 +3,7 @@
 close all
 clear; 
 tic;
+disp('timer started');
 
 % Change to current running directory:
 %cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
@@ -17,7 +18,7 @@ speed_avg = 30;
 
 % Capital cost of truck / maximum number of trucks
 truck_cost = 0;
-max_truck = 2;
+max_truck = 4;
 
 % Distance cost
 km_cost = 0.5;
@@ -78,7 +79,7 @@ load('filling_rates_13_10_22.mat')
 % Makes uniform filling rates over entire period
 filling_rates = repmat(filling_rates',1,T*P);
 filling_rates(1,:) = [repmat([0.86],1, 14)];% repmat([0.3], 1,3)];
-
+filling_rates(5,:) = [repmat([0.7],1, 14)];
 %% Load scenarios and relevant variables
 % Load scenarios and largest gap in scenario
 [scens,mult]=create_scens(); %Week multiplier, for extra-weekly collections
@@ -154,7 +155,6 @@ for i = 1:numBins
 end
 
 %% Decision variables and constraints
-tic
 yis = {};
 for l = 1:size(scen_cells,1)
     yis{l} = binvar(size(scen_cells{l,1},1), 1,'full'); %if l is assigned scenario in subset
@@ -174,6 +174,9 @@ for l = 1:size(scen_cells,1) % For all scens
     end
 end
 
+t_mat_dump_extra = t_mat(dump_ind,skip_nums_extra_scens);
+t_mat_depot_extra = t_mat(depot_ind,skip_nums_extra_scens);
+
 
 yis_extra = {};
 assign_1_extra = [];
@@ -183,7 +186,8 @@ for l = 1:size(scen_cells_extra,2) % For each extra skip
 end
 
 %%
-%Now have to do flow but 
+%Flow 
+disp('Day flow extra starting');
 xit_extra = binvar(T*P,size(scen_cells_extra,2));
 day_flow_extra = []; %Skips emptied only on periods assigned by scenario
 for l = 1:size(scen_cells_extra,2)
@@ -191,8 +195,9 @@ for l = 1:size(scen_cells_extra,2)
     for i = 1:T*P
         day_flow_extra = [day_flow_extra xit_extra(i,l)'-apply_mult*yis_extra{l}'*scens(scen_cells_extra{l},i)==0];
     end
-        toc;
+    toc;
 end
+disp('Day flow extra done');
 %% Decision variables
 %matching decision var
 numextraBins = size(xit_extra,2);
@@ -227,9 +232,11 @@ end
 % Inequality constraints
 
 % Ensure period time is not exceeded
-period_time = xit*(t_mat(dump_ind,indices_skips))' + ((t_mat(dump_ind,indices_skips))*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(period_t_max,T*P,1).*numV_D;
+period_time = xit_extra*t_mat(dump_ind,skip_nums_extra_scens)' + (t_mat(skip_nums_extra_scens,dump_ind)'*xit_extra')' +  xit*t_mat(dump_ind,indices_skips)' + (t_mat(indices_skips,dump_ind)'*xit')' + fit*((-1*t_mat(dump_ind,indices_skips) + t_mat(depot_ind,indices_skips)))' <= repmat(period_t_max,T*P,1).*numV_D;
 
-period_op = ot >= sum(xit,2)/numBins; %Counts operation days (periods)
+%period_op = ot >= sum([xit xit_extra],2)/(numBins+max_add_bins); %Counts operation days (periods)
+
+%FIT NOT APPLYING TO EXTRA SKIPS
 first = sum(fit, 2) == numV_D; %Makes it so numV_D skip is first in loop on each period
 fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that period
 
@@ -245,8 +252,9 @@ end
 
 add_skip_max = total_added_skips <= max_add_bins;
 % Overall constraints
-Constraints = [assign_1 day_flow_extra assign_1_extra  numV_D_numV day_flow period_op first fit_unity period_time numV_const add_skip_max];
+Constraints = [assign_1 day_flow_extra assign_1_extra  numV_D_numV day_flow  first fit_unity period_time numV_const add_skip_max];
 %fill_min
+% period_op
 %% Objective function
 
 % Divisors by skip
@@ -272,16 +280,19 @@ for l = 1:size(scen_cells,1)
 end
 %%
 % Distance travelled on the rounds
-distance_diff = km_cost*(xit_adj*(dist_mat(dump_ind,indices_skips))' + ((dist_mat(dump_ind,indices_skips))*xit_adj')' + fit_adj*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))');
+distance_diff = km_cost*( xit_extra*dist_mat(dump_ind,skip_nums_extra_scens)' + (dist_mat(skip_nums_extra_scens,dump_ind)'*xit_extra')' + xit_adj*(dist_mat(dump_ind,indices_skips))' + (dist_mat(indices_skips,dump_ind)'*xit_adj')' + fit_adj*((-1*dist_mat(dump_ind,indices_skips) + dist_mat(depot_ind,indices_skips)))');
 % Daily operation cost
 capital_cost =  skip_add_cost*sum(add_bins_vect) + truck_cost*numV;
-total_op_cost = period_op_cost*sum(ot);
-Objective = sum(sum(xit_extra)) + sum(distance_diff) + total_op_cost + capital_cost;
+total_op_cost = period_op_cost.*numV_D; %sum(ot)
+Objective = sum(distance_diff) + sum(total_op_cost) + capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.0005);
+options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.05);
+disp('optimize being called');
 sol =       optimize(Constraints,Objective,options);
+disp('optimized finished');
+toc
 %% Analyze error flags & Get the solution
 if sol.problem == 0  
     disp('Finished running');
@@ -295,7 +306,7 @@ if sol.problem == 0
     markers = ['.','*','x','+'];
     legend_group = zeros(1,4);
     for i = 1:length(indices_skips)
-        extra_period = value(yis{i}).'*(1./scen_cells{i,3});
+        extra_period = value(yis{i})'*(1./scen_cells{i,3});
         current_val = value(xit(:,i));
         x = linspace(0.25,T-0.25,T*P);
         y = current_val'*i;
@@ -306,6 +317,7 @@ if sol.problem == 0
         end
         hold on
     end
+    % ADD EXTRA SKIPS HERE
     xlim([0 7])
 %     lgd=legend(legend_group(2:4),{'2','3','4'});
 %     lgd.Title.String = 'week periodicity';
@@ -356,7 +368,8 @@ toc;
 % tic
 % sum(yis{skip_nums_extra_scens(l)}(scen_cells_indices{l})).*yis_extra{l}'*scens(scen_cells_extra{l},:)
 % toc
-%% Scenarios 1x14 double period one weekly with week multiplier/cost divisor
+%% Builds scenarios
+%1x14 double period one weekly with week multiplier/cost divisor
 function [scens,mult] = create_scens()
     reserved_periods = [13 14]; %Sundays
     P = 2;
@@ -418,4 +431,3 @@ function [scens,mult] = create_scens()
     mult = [mult ones(1,size(scens_intra_week,1))];
     scens = [scens;scens_intra_week];
 end 
-
