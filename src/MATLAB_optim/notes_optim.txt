@@ -22,3 +22,35 @@ Current tasks:
 - results presentation
 - for skips with a limited number of scens, give alternative scenarios with additionals skips
         (simply divide filling rates homogeneously)
+
+
+
+%% Create scen_cells extra 
+scen_cells_extra = {};
+skip_nums_extra_scens = [];
+for l = 1:size(scen_cells,1)
+    if max(scen_cells{l,2})>0
+        for i = 1:max(scen_cells{l,2})
+            scen_cells_extra{l,i} = scen_cells{l,1}(scen_cells{l,2}==i);
+            skip_nums_extra_scens = [skip_nums_extra_scens l];
+        end
+    end
+end
+
+yis_extra = {};
+for l = 1:size(scen_cells_extra,1)
+    for j = 1:size(scen_cells_extra,2)
+        if scen_cells_extra{l,j}
+            yis_extra{l,j} = binvar(size(scen_cells_extra{l,j},1), j,'full');
+        end
+    end
+end
+
+assign_1_extra = [];
+for l = 1:size(scen_cells_extra,1)
+    for j = 1:size(scen_cells_extra,2)
+        if scen_cells_extra{l,j}
+            assign_1_extra = [assign_1_extra sum(yis_extra{l,j})==1];
+        end
+    end
+end

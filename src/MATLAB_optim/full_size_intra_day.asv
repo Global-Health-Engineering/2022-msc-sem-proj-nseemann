@@ -77,7 +77,7 @@ load('filling_rates_13_10_22.mat')
 
 % Makes uniform filling rates over entire period
 filling_rates = repmat(filling_rates',1,T*P);
-filling_rates(1,:) = [repmat([0.86],1, 14)];% repmat([0.3], 1,3)];
+%filling_rates(1,:) = [repmat([0.66],1, 14)];% repmat([0.3], 1,3)];
 
 %% Load scenarios and relevant variables
 % Load scenarios and largest gap in scenario
@@ -85,8 +85,10 @@ filling_rates(1,:) = [repmat([0.86],1, 14)];% repmat([0.3], 1,3)];
 divis = 1./mult; %Divisor for costs used in objective function
 
 %% Narrow relevant scenarios
-scen_cells = {}; %Cell for each skip. {{scen numbers}, {number of additional skips}, {cost multiplier}} 
+scen_cells = {}; %Cell for each skip. 
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
+excessive = [];
+excess_bins = []; 
 for i = 1:numBins
     scen_cells{i,1} = [];
     scen_cells{i,2} = [];
@@ -124,10 +126,10 @@ for i = 1:numBins
     
     % Adding scenarios where we add bins
     for add_bins = 1:set_add_bins
-        %Scens with more than per_week_consider in a week or if possible
-        %schedules is empty
-        if isempty(scen_cells{i,1}) || min(sum(scens(scen_cells{i,1},:),2).*scen_cells{i,3}) >= per_week_consider 
+        %Scens with more than per_week_consider in a week
+        if min(sum(scens(scen_cells{i,1},:),2).*scen_cells{i,3}) >= per_week_consider 
             current_rates_doubled = [filling_rates(i,:)./(1+add_bins) filling_rates(i,:)./(1+add_bins)]; %doubled for extra weekly
+            excess_bins = [excess_bins; i add_bins filling_rates(i,1)./(1+add_bins)];
             for s = 1:size(scens,1)
                 current_scen_doubled = [scens(s,:) scens(s,:)]; %doubled for extra weekly
                 previous = 1;
