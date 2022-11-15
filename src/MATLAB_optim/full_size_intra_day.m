@@ -6,7 +6,7 @@ tic;
 disp('timer started');
 
 % Change to current running directory:
-%cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
+% cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 
 %% Parameters
 
@@ -18,14 +18,14 @@ speed_avg = 30;
 
 % Capital cost of truck / maximum number of trucks
 truck_cost = 0; % 20000 according to Liz;
-max_truck = 20;
+max_truck = 2;
 
 % Distance cost
 km_cost = 0.5;
 
 % Capital cost of buying one skip
-skip_add_cost = 300;% 3000 according to Liz;
-max_add_bins = 10;
+skip_add_cost = 0;% 3000 according to Liz;
+max_add_bins = 40;
 
 % Indices other than skips
 dump_ind = 54; % Mzedi dump
@@ -39,13 +39,13 @@ T = 7;
 P = 2;
 
 % maximum number of additional bins at each bin
-set_add_bins = 5;
+set_add_bins = 3;
 
 % additional bins only considered for more or equal than per_week_consider services
 % under current service
 per_week_consider = 5;
 
-period_t_max = 4;
+period_t_max = 4; % Maximum number of hours per period
 
 %% Import distances
 %Distance matrix
@@ -90,7 +90,7 @@ filling_rates = repmat(filling_rates',1,T*P);
 % Forcing some filling rates to extreme values
 filling_rates(1,:) = [repmat([0.86],1, 14)];
 filling_rates(5,:) = [repmat([0.7],1, 14)];
-filling_rates(8,:) = [repmat([1],1, 14)];
+filling_rates(8,:) = [repmat([1.2],1, 14)];
 %% Load scenarios and relevant variables
 % Load scenarios and largest gap in scenario
 [scens,mult]=create_scens(); %Week multiplier, for extra-weekly collections
@@ -332,10 +332,10 @@ if sol.problem == 0
     legend_group = zeros(1,4);
      
     for i = 1:length(indices_skips)
-        extra_period = value(yis{i})'*(1./scen_cells{i,3});
-        current_val = value(xit(:,i));
+        extra_period = round(value(yis{i})'*(1./scen_cells{i,3}));
+        current_val = round(value(xit(:,i)));
         x = linspace(0.25,T-0.25,T*P);
-        y = current_val'*i;
+        y = round(current_val'*i);
        
         current_scatter = scatter(x(y~=0),nonzeros(y),markers(extra_period),'k');%filling_rates(i,1)*50/0.5);
         if ~legend_group(extra_period)
@@ -345,9 +345,9 @@ if sol.problem == 0
     end
     
     for i = 1:length(skip_nums_extra_scens)
-        current_val = value(xit_extra(:,i));
+        current_val = round(value(xit_extra(:,i)));
         x = linspace(0.25,T-0.25,T*P);
-        y = current_val'*(i+length(indices_skips));
+        y = round(current_val'*(i+length(indices_skips)));
         current_scatter = scatter(x(y~=0),nonzeros(y),markers(extra_period),'k');%filling_rates(i,1)*50/0.5);
         hold on
     end
@@ -378,32 +378,9 @@ else
 end
 
 toc;
-%%
-% [scens,mult] = create_scens();
-% size(scens)
 
 %% Analysis
-% for l = 1:length(yis_extra)
-%     value(sum(yis{skip_nums_extra_scens(l)}(scen_cells_indices{l})))
-%     scen_cell_ind = find(value(yis{skip_nums_extra_scens(l)}));
-%     %scen_cells{l,2}(scen_cell_ind)
-% end
-% l = 1;
-
-
-% tic
-% for i = 1:14
-%     val1 = sum(yis{skip_nums_extra_scens(l)}(scen_cells_indices{l}));
-%     val2 = yis_extra{l}'*scens(scen_cells_extra{l},i);
-%     val1*val2
-% toc
-% end
-% toc 
-% 
-% 
-% tic
-% sum(yis{skip_nums_extra_scens(l)}(scen_cells_indices{l})).*yis_extra{l}'*scens(scen_cells_extra{l},:)
-% toc
+skip_nums_extra_scens.*(sum(value(xit_extra)) ~= 0)
 %% Builds scenarios
 %1x14 double period one weekly with week multiplier/cost divisor
 function [scens,mult] = create_scens()
