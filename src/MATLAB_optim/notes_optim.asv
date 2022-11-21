@@ -26,8 +26,4 @@ Current tasks:
 
 
 %% needed output
-decision variables: xit, xit_adj, xit_extra, fit, fit_adj, fit_extra, yis, yis_extra, numV_D
-resulting: add_bins_vect, distance_diff
-preprocessing: scen_cells,scens,C_rates, compost_ind, depot_ind, dump_ind,filling_rates,
-scen_cells_extra,scen_cells_indices, skip_nums_extra_scens, dist_mat, indices_facilities, 
-indices_skips, t_mat
+decision variables: xit, xit_extra, fit, fit_extra, yis, yis_extra

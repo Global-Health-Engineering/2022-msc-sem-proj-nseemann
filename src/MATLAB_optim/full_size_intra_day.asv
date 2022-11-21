@@ -395,7 +395,7 @@ output.optiVars.numV_crews = value(numV_crews);
 output.results.distance_cost = value(distance_cost);
 output.results.total_op_cost = value(total_op_cost);
 output.results.add_bins_vect = value(add_bins_vect);
-output.results.Objective = value(Objective);
+output.results.Objective = value(add_bins_vect);
 
 output.process.scen_cells = scen_cells;
 output.process.scen_cells_extra = scen_cells_extra;
@@ -409,8 +409,8 @@ output.process.t_mat = t_mat;
 output.process.indices_facilities = indices_facilities;
 output.process.indices_skips = indices_skips;
 %%
-mkdir([datestr(datetime,'yy-mm-dd') '_output']);
-save(fullfile(pwd, [datestr(datetime,'yy-mm-dd') '_output'], [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
+mkdir(datestr(datetime,'yy-mm-dd'));
+save(fullfile(pwd, datestr(datetime,'yy-mm-dd'), [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
 %% Plot results
 t = tiledlayout(1,1);
 current_vals = value(xit);
