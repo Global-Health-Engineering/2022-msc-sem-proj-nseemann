@@ -1,32 +1,32 @@
 %%%ETH ZURICH 
 %%%Course: SP
 close all
-clear; 
+%clear
 tic;
 disp('timer started');
 
 % Change to current running directory:
 % cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 
-%% Parameters
-params.optiParams.period_op_cost = 4.5;
-params.optiParams.truck_cost = 0;
-params.optiParams.km_cost = 0.5;
-params.optiParams.skip_add_cost = 0;
-params.optiParams.max_add_bins = 10;
-params.optiParams.period_t_max = 4;
-
-params.preParams.numV = 3;
-params.preParams.speed_avg = 30;
-params.preParams.dump_ind = 54;
-params.preParams.compost_ind = 55;
-params.preParams.depot_ind = 56;
-params.preParams.T = 7;
-params.preParams.P = 2;
-params.preParams.underfull_threshold = 0.6;
-params.preParams.set_add_bins = 2;
-params.preParams.per_week_consider = 4;
-params.preParams.unified_salary = 1;
+% %% Parameters
+% params.optiParams.period_op_cost = 4.5;
+% params.optiParams.truck_cost = 0;
+% params.optiParams.km_cost = 0.5;
+% params.optiParams.skip_add_cost = 0;
+% params.optiParams.max_add_bins = 10;
+% params.optiParams.period_t_max = 4;
+% 
+% params.preParams.numV = 3;
+% params.preParams.speed_avg = 30;
+% params.preParams.dump_ind = 54;
+% params.preParams.compost_ind = 55;
+% params.preParams.depot_ind = 56;
+% params.preParams.T = 7;
+% params.preParams.P = 2;
+% params.preParams.underfull_threshold = 0.6;
+% params.preParams.set_add_bins = 2;
+% params.preParams.per_week_consider = 4;
+% params.preParams.unified_salary = 1;
 
 
 % % Cost of operating one truck for 1 day (assume labour costs)
@@ -127,7 +127,7 @@ divis = 1./mult; %Divisor for costs used in objective function
 %% Narrow relevant scenarios
 scen_cells = {}; %Cell for each skip. {{scen numbers}, {number of additional skips}, {cost multiplier}} 
 %if a scenarios is suitable, add the scenario vector to skip scenario cell
-for i = 1:numBins
+for i = 3%1:numBins
     scen_cells{i,1} = [];
     scen_cells{i,2} = [];
     scen_cells{i,3} = [];
@@ -159,7 +159,8 @@ for i = 1:numBins
         end 
         % If the exceed flag is not raised and if not (intra weekly undefull) i.e.
         % underfull extra_weekly are allowed
-        if exceed ~= 1 && ~(sum(scens(s,:)) > 1 && max(fullness_levels) < params.preParams.underfull_threshold)
+        disp(max(fullness_levels))
+        if exceed ~= 1 && ~(sum(scens(s,:)) > 1 && max(fullness_levels) + min(filling_rates(i < params.preParams.underfull_threshold)
             scen_cells{i,1} = [scen_cells{i,1}; s]; % Add scen number to first cell column
             scen_cells{i,2} = [scen_cells{i,2}; 0]; % 0 additional skips for now
             scen_cells{i,3} = [scen_cells{i,3}; divis(s)]; % cost divisor
@@ -248,7 +249,7 @@ numV_D = intvar(T*P,1,'full');
 if params.preParams.unified_salary == 0
     numV_crews = intvar(T*P,1,'full'); % Number of vehicles in operation on day
 else 
-    numV_crews = repmat(intvat(1,1),T*P,1);
+    numV_crews = [repmat(intvar(1,1),T*P-2,1); 0; 0];
 end
 
 %numV = intvar(1); % Total number of vehicles
@@ -357,7 +358,7 @@ Objective = sum(distance_cost) + sum(total_op_cost); %+ capital_cost;
 
 %% Set options for YALMIP and solver - Solve the problem
 % CUTSDP or gurobi
-options =   sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.05);
+options =   params.optiOptions;%sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.05);
 disp('optimize being called');
 sol =       optimize(Constraints,Objective,options);
 disp('optimized finished');
@@ -395,7 +396,7 @@ output.optiVars.numV_crews = value(numV_crews);
 output.results.distance_cost = value(distance_cost);
 output.results.total_op_cost = value(total_op_cost);
 output.results.add_bins_vect = value(add_bins_vect);
-output.results.Objective = value(add_bins_vect);
+output.results.Objective = value(Objective);
 
 output.process.scen_cells = scen_cells;
 output.process.scen_cells_extra = scen_cells_extra;
@@ -409,145 +410,10 @@ output.process.t_mat = t_mat;
 output.process.indices_facilities = indices_facilities;
 output.process.indices_skips = indices_skips;
 %%
-mkdir(datestr(datetime,'yy-mm-dd'));
-save(fullfile(pwd, datestr(datetime,'yy-mm-dd'), [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
-%% Plot results
-t = tiledlayout(1,1);
-current_vals = value(xit);
-markers = ['.','*','x','+'];
-legend_group = zeros(1,4);
+mkdir([datestr(datetime,'yy-mm-dd') '_output']);
+save(fullfile(pwd, [datestr(datetime,'yy-mm-dd') '_output'], [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
 
-for i = 1:length(indices_skips)
-    extra_period = round(value(yis{i})'*(1./scen_cells{i,3}));
-    current_val = round(value(xit(:,i)));
-    x = linspace(0.25,T-0.25,T*P);
-    y = round(current_val'*i);
-
-    current_scatter = scatter(x(y~=0),nonzeros(y),markers(extra_period),'k');%filling_rates(i,1)*50/0.5);
-    if ~legend_group(extra_period)
-        legend_group(extra_period) = current_scatter;
-    end
-    hold on
-end
-
-for i = 1:length(skip_nums_extra_scens)
-    current_val = round(value(xit_extra(:,i)));
-    x = linspace(0.25,T-0.25,T*P);
-    y = round(current_val'*(i+length(indices_skips)));
-    current_scatter = scatter(x(y~=0),nonzeros(y),markers(extra_period),'k');%filling_rates(i,1)*50/0.5);
-    hold on
-end
-
-
-% ADD EXTRA SKIPS HERE
-xlim([0 7])
-
-%       xticks([0 1 2 3 4 5 6 7])
-%     xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
-%     ax = gca;
-%     ax.LineWidth = 0.5;
-%     set(gca, 'YGrid', 'on', 'XGrid', 'off')
-%     ax.GridLineStyle = '-';
-%     ax.GridColor = 'k';
-%     ax.GridAlpha = 1;
-%     gca.YAxis.MinorTickValues = 0:numBins+numExtraBinScens;
-
-xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
-h = arrayfun(@(a,b)xline(a, "-",'LabelHorizontalAlignment','left','LabelVerticalAlignment','top'),[1 2 3 4 5 6 7]);
-xticklabels(repmat(["am","pm"],1,7))
-
-ylabel('Skip number')
-xlabel('Day')
-grid()
-ax2 = axes(t);
-
-ax2.XAxisLocation = 'top';
-ax2.YAxis.Visible  = 'off';
-xticks(ax2, 0.5+linspace(0,6,7))
-xticklabels(ax2, {'Mon','Tue','Wed','Thu','Fri','Sat','Sun'});
-set(ax2.XAxis,'TickDir', 'both');
-%ax2.Color = 'none';
-ax2.Box = 'off';
-set(ax2, 'XMinorGrid', 'off')
-xlim(ax2,[0 7])
-lgd=legend(legend_group(2:4),{'2','3','4'},'Location', 'northeast');
-lgd.Title.String = 'periodicity';
     
-    %% Analysis
-    %Day breakdown
-    no_days = [];
-    
-    for d = 1:T*P
-        joined_xit = [xit xit_extra];
-        no_days = [no_days sum(value(joined_xit(d,:)))];
-        %find(joined_xit(d,:))
-    end
-    figure()
-    
-    t = tiledlayout(1,1);
-    bar(x, [no_days;value(numV_D)']');
-   
-    xlim([0,7])
-    xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
-    
-    xticklabels(repmat(["am","pm"],1,7))
-    %xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
-    h = arrayfun(@(a,b)xline(a, "-",'LabelHorizontalAlignment','left','LabelVerticalAlignment','top'),[1 2 3 4 5 6 7]);
-    
-    ax = gca;
-    ax.LineWidth = 0.5;
-    grid minor
-    set(ax, 'XMinorGrid', 'off', 'YMinorGrid', 'on')
-    ax.GridLineStyle = '-';
-    ax.GridColor = 'k';
-    ax.GridAlpha = 1
-    ax.YAxis.MinorTickValues = 0:18:18;
-    ax.XAxis.MinorTickValues = [];
-    set(gca,'MinorGridLineStyle','-')
-    set(ax,'TickLength', [0.01 0.01]);
-    legend('Number of skips serviced','Number of vehicles operated')
-    
-    ax2 = axes(t);
-    
-    ax2.XAxisLocation = 'top';
-    ax2.YAxis.Visible  = 'off';
-    xticks(ax2, 0.5+linspace(0,6,7))
-    xticklabels(ax2, {'Mon','Tue','Wed','Thu','Fri','Sat','Sun'});
-    set(ax2.XAxis,'TickDir', 'both');
-    %ax2.Color = 'none';
-    ax2.Box = 'off';
-    set(ax2, 'XMinorGrid', 'off', 'YGrid','off')
-    xlim(ax2,[0 7])
-    hold off
-    %% Cost breakdown
-    figure()
-    x = linspace(0.25,T-0.25,T*P);
-    bar(x,[value(distance_cost) total_op_cost], 'stacked')
-    legend('Fuel costs','Operation costs')
-    xlim([0 7])
-    xticks([0 1 2 3 4 5 6 7])
-    xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
-    ax = gca;
-    ax.LineWidth = 0.5;
-    set(gca, 'YGrid', 'off', 'XGrid', 'on')
-    
-    ax.GridLineStyle = '-';
-    ax.GridColor = 'k';
-    ax.GridAlpha = 1;
-    grid minor
-    
-    %% Added skips
-    added_skips = [];
-    for l = 1:size(scen_cells,1)
-        added_skips = [added_skips; value(yis{l}'*scen_cells{l,2})];
-    end
-    added_skips_indices = find(added_skips);
-    skip_titles = [];
-    for a = 1:length(added_skips_indices)
-        skip_titles = [skip_titles; C_rates{1,1}(find(C_rates{1,2} == indices_skips(added_skips_indices(a))))];
-    end
-    
-    table_added_skips = table(added_skips(added_skips~=0),skip_titles);
 %% Builds scenarios
 %1x14 double period one weekly with week multiplier/cost divisor
 function [scens,mult] = create_scens()
