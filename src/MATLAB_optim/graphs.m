@@ -1,10 +1,10 @@
 clear
-load(fullfile(pwd,'results','22-11-22_output','22-11-22_16-00_output.mat'));
+load(fullfile(pwd,'results','22-11-25_output','22-11-25_22-22_output.mat'));
 %% Plot results
 close all
 T = params.preParams.T;
 P = params.preParams.P;
-
+%%
 t = tiledlayout(1,1);
 current_vals = output.optiVars.xit;
 markers = ['.','*','x','+'];
@@ -41,11 +41,10 @@ xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
 h = arrayfun(@(a,b)xline(a, "-",'LabelHorizontalAlignment','left','LabelVerticalAlignment','top'),[1 2 3 4 5 6 7]);
 xticklabels(repmat(["am","pm"],1,7))
 yline(length(output.process.indices_skips)+1)
-ylabel('Skip number')
-xlabel('Day')
+ylabel('Skip')
+xlabel('Period of day')
 grid()
 ax2 = axes(t);
-
 ax2.XAxisLocation = 'top';
 ax2.YAxis.Visible  = 'off';
 xticks(ax2, 0.5+linspace(0,6,7))
@@ -54,9 +53,11 @@ set(ax2.XAxis,'TickDir', 'both');
 %ax2.Color = 'none';
 ax2.Box = 'off';
 set(ax2, 'XMinorGrid', 'off')
+
 xlim(ax2,[0 7])
 lgd=legend(legend_group(2:4),{'2','3','4'},'Location', 'northeast');
-lgd.Title.String = 'periodicity';
+
+lgd.Title.String = 'Period';
 
 
  %% Daily operation breakdown analysis
@@ -73,6 +74,7 @@ figure()
 t = tiledlayout(1,1);
 bar(x, [no_days;output.optiVars.numV_D']');
 ylim([0,20])
+ylabel('Number of skips serviced | Number of vehicles operated')
 xlim([0,7])
 xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
 
@@ -106,16 +108,31 @@ xlim(ax2,[0 7])
 hold off
     
     %% Cost breakdown
-figure()
+
+t = tiledlayout(1,1);
 x = linspace(0.25,T-0.25,T*P);
-bar(x,[output.results.distance_cost output.results.total_op_cost], 'stacked')
+
+bar(x,[output.results.distance_cost/1000 output.results.total_op_cost/1000], 'stacked')
 legend('Fuel costs','Operation costs')
 xlim([0 7])
-xticks([0 1 2 3 4 5 6 7])
-xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
+ylim([0 200])
 ax = gca;
 ax.LineWidth = 0.5;
-set(gca, 'YGrid', 'off', 'XGrid', 'on')
+set(gca, 'YGrid', 'on', 'XGrid', 'on')
+ax.XAxis.Visible = 'off';
+ylabel('Costs [x10^3 MWK]')
+
+
+ax2 = axes(t);
+ax2.XAxisLocation = 'bottom';
+ax2.YAxis.Visible  = 'off';
+xticks(ax2, 0.5+[0 1 2 3 4 5 6 7])
+xticklabels(ax2, {'Mon','Tue','Wed','Thu','Fri','Sat','Sun'});
+ax2.Box = 'off';
+set(ax2, 'XMinorGrid', 'off')
+
+xlim(ax2,[0 7])
+
 
 ax.GridLineStyle = '-';
 ax.GridColor = 'k';

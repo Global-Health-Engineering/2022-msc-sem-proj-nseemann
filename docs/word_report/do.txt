@@ -1,0 +1,9 @@
+Do: 
+-	How is currently operated cost + estimated overflowing
+-	Estimated cost of operating without overflow
+-	Change to parameters such as 
+o	Adding a skip
+o	Adding a vehicle
+o	Separating waste (organic and inorganic)
+o	Add transfer station
+o	Sensitivity to labour cost, fuel cost

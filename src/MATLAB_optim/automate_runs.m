@@ -1,9 +1,10 @@
 %% Parameters
-params.optiParams.period_op_cost = 4.5;
+clear
+params.optiParams.period_op_cost = 5400;
 params.optiParams.truck_cost = 0;
-params.optiParams.km_cost = 0.5;
+params.optiParams.km_cost = 384;
 params.optiParams.skip_add_cost = 0;
-params.optiParams.max_add_bins = 10;
+params.optiParams.max_add_bins = 5;
 params.optiParams.period_t_max = 4;
 params.optiParams.numV = 3;
 
@@ -14,9 +15,9 @@ params.preParams.depot_ind = 56;
 params.preParams.T = 7;
 params.preParams.P = 2;
 params.preParams.underfull_threshold = 0.6;
-params.preParams.set_add_bins = 2;
+params.preParams.set_add_bins = 1;
 params.preParams.per_week_consider = 4;
-params.preParams.unified_salary = 0;
+params.preParams.unified_salary = 1;
 params.preParams.nanreplace = 0.2;
 
 params.optiOptions = sdpsettings('verbose',1,'solver','gurobi','savesolveroutput',1,'gurobi.MIPGap',0.03);

@@ -297,6 +297,12 @@ period_time = [xit_extra xit]*t_mat(params.preParams.dump_ind,[skip_nums_extra_s
     + (t_mat([skip_nums_extra_scens indices_skips],params.preParams.dump_ind)'*[xit_extra xit]')'...
     + [fit_extra fit]*((-1*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips]) + t_mat(params.preParams.depot_ind,[skip_nums_extra_scens indices_skips])))'...
     + numV_D*t_mat(params.preParams.dump_ind,params.preParams.depot_ind) <= repmat(params.optiParams.period_t_max,T*P,1).*numV_D;
+
+% period_time = [xit_extra xit]*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips])'...
+%     + (t_mat([skip_nums_extra_scens indices_skips],params.preParams.dump_ind)'*[xit_extra xit]')'...
+%     + [fit_extra fit]*((-1*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips]) + t_mat(params.preParams.depot_ind,[skip_nums_extra_scens indices_skips])))'...
+%     + sum([fit_extra fit],2)*t_mat(params.preParams.dump_ind,params.preParams.depot_ind) <= repmat(params.optiParams.period_t_max,T*P,1).*numV_D;
+
 %Fit applying to fit_extra
 first = sum(fit, 2) + sum(fit_extra,2) == numV_D; %Makes it so numV_D skip is first in loop on each period
 fit_unity = fit <= xit; %Prevents a first in loop when a skip is not operating on that period
@@ -339,7 +345,7 @@ for l = 1:size(scen_cells,1)
         fit_adj(:,l) = fit(:,l);
     else
         xit_adj(:,l) = xit(:,l).*scen_cells{l,3}(1);
-        fit_adj(:,l) = fit(:,l);
+        fit_adj(:,l) = fit(:,l); %Don't divide fit, to not underestimate costs
     end
 end
 %%
