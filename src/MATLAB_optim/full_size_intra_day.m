@@ -382,26 +382,6 @@ end
 toc;
 
 %% Solution processing
-output.optiVars.xit = value(xit);
-output.optiVars.xit_adj = value(xit_adj);
-output.optiVars.xit_extra = value(xit_extra);
-output.optiVars.fit = value(fit);
-output.optiVars.fit_extra = value(fit_extra);
-
-for i = 1:length(yis)
-    output.optiVars.yis{i} = value(yis{i});
-end
-
-for i = 1:length(yis_extra)
-    output.optiVars.yis_extra{i} = value(yis_extra{i});
-end
-output.optiVars.numV_D = value(numV_D);
-output.optiVars.numV_crews = value(numV_crews);
-
-output.results.distance_cost = value(distance_cost);
-output.results.total_op_cost = value(total_op_cost);
-output.results.add_bins_vect = value(add_bins_vect);
-output.results.Objective = value(Objective);
 
 output.process.scen_cells = scen_cells;
 output.process.scen_cells_extra = scen_cells_extra;
@@ -415,8 +395,37 @@ output.process.t_mat = t_mat;
 output.process.indices_facilities = indices_facilities;
 output.process.indices_skips = indices_skips;
 
-output.solver_output = sol;
-output.bound_gap = (sol.solveroutput.result.objval-sol.solveroutput.result.poolobjbound)/sol.solveroutput.result.objval;
+if ~strcmp(sol.solveroutput.result.status,'INF_OR_UNBD')
+    output.optiVars.xit = value(xit);
+    output.optiVars.xit_adj = value(xit_adj);
+    output.optiVars.xit_extra = value(xit_extra);
+    output.optiVars.fit = value(fit);
+    output.optiVars.fit_extra = value(fit_extra);
+
+    for i = 1:length(yis)
+        output.optiVars.yis{i} = value(yis{i});
+    end
+
+    for i = 1:length(yis_extra)
+        output.optiVars.yis_extra{i} = value(yis_extra{i});
+    end
+    output.optiVars.numV_D = value(numV_D);
+    output.optiVars.numV_crews = value(numV_crews);
+
+    output.results.distance_cost = value(distance_cost);
+    output.results.total_op_cost = value(total_op_cost);
+    output.results.add_bins_vect = value(add_bins_vect);
+    output.results.Objective = value(Objective);
+
+
+
+    output.solver_output = sol;
+
+    output.bound_gap = (sol.solveroutput.result.objval-sol.solveroutput.result.poolobjbound)/sol.solveroutput.result.objval;
+    output.feasible = 1;
+else
+    output.feasible = 0;
+end
 %% Builds scenarios
 %1x14 double period one weekly with week multiplier/cost divisor
 function [scens,mult] = create_scens()
