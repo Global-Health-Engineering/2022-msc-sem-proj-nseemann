@@ -4,7 +4,7 @@ params.optiParams.period_op_cost = 5400;
 params.optiParams.truck_cost = 0;
 params.optiParams.km_cost = 384;
 params.optiParams.skip_add_cost = 0;
-params.optiParams.max_add_bins = 5;
+params.optiParams.max_add_bins = 7;
 params.optiParams.period_t_max = 4;
 params.optiParams.numV = 3;
 
@@ -16,7 +16,7 @@ params.preParams.T = 7;
 params.preParams.P = 2;
 params.preParams.underfull_threshold = 0.6;
 params.preParams.set_add_bins = 2;
-params.preParams.per_week_consider = 3;
+params.preParams.per_week_consider = 4;
 params.preParams.unified_salary = 1;
 params.preParams.nanreplace = 0.2;
 
@@ -27,6 +27,6 @@ clearvars -except params
 %load(fullfile(pwd,'test_base','22-11-21_19-44.mat'));
 run('full_size_intra_day.m');
 %% Save all
-ans = output.solver_output.solveroutput.result.objval
+%ans = output.solver_output.solveroutput.result.objval
 mkdir(fullfile('results',[datestr(datetime,'yy-mm-dd') '_output']));
 save(fullfile(pwd,'results', [datestr(datetime,'yy-mm-dd') '_output'], [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
