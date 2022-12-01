@@ -207,7 +207,14 @@ for i = 1:numBins
     end 
 end
 
-
+% possible_extra = 0;
+% for i = 1:length(scen_cells)
+%     possible_extra = possible_extra + max(scen_cells{i,2});
+% end
+% 
+% 
+% disp('Max number of additional skips: ')
+% disp(possible_extra)
 scen_cells_extra = {};
 skip_nums_extra_scens = [];
 scen_cells_indices = {};
@@ -384,6 +391,7 @@ toc;
 %% Solution processing
 
 output.process.scen_cells = scen_cells;
+output.process.possible_extra = possible_extra;
 output.process.scen_cells_extra = scen_cells_extra;
 output.process.scen_cells_indices = scen_cells_indices;
 output.process.skip_nums_extra_scens = skip_nums_extra_scens;

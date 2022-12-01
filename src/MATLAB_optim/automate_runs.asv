@@ -69,7 +69,7 @@ for i = vary_max_add_bins
 end
 
 table_exp = table(numV,set_add_bins,max_add,possible_extra,feas,added,objective,gap,'RowName',ID);
-writetable(table_exp,'2_add_per_week_3');
+writetable(table_exp,'2_add,
 %%
 %load(fullfile(pwd,'test_base','22-11-21_19-44.mat'));
 run('full_size_intra_day.m');
