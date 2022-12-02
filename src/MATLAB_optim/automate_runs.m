@@ -31,8 +31,9 @@ experiment = zeros(1,7); %numV,set_add,max_add,possible_add,added,objective,gap
 params = params_basis;
 
 params.optiParams.numV = 3;
+params.optiParams.period_t_max = 4;
 params.preParams.set_add_bins = 2;
-vary_max_add_bins = 3:12;
+vary_max_add_bins = 14;
 
 %table_parameters = ["numV";"set_add_bins";"possible_extra";"feas","added";"objective";"gap"];
 
@@ -56,7 +57,7 @@ for i = vary_max_add_bins
     numV(b) = params.optiParams.numV;
     set_add_bins(b) = params.preParams.set_add_bins;
     max_add(b) = params.optiParams.max_add_bins;
-    possible_extra = output.process.possible_extra;
+    possible_extra(b) = output.process.possible_extra;
     feas(b) = output.feasible;
     if output.feasible == 1
         added(b) = sum(output.results.add_bins_vect);
@@ -68,12 +69,12 @@ for i = vary_max_add_bins
     save(fullfile(pwd,'results', [current_datetime '_output'], [current_datetime_ext '_output']), 'output', 'params'); 
 end
 
-table_exp = table(numV,set_add_bins,max_add,possible_extra,feas,added,objective,gap,'RowName',ID);
+table_exp = table(numV,set_add_bins,max_add,feas,added,objective,gap,'RowName',ID);
 writetable(table_exp,'2_add_per_week_3');
 %%
 %load(fullfile(pwd,'test_base','22-11-21_19-44.mat'));
-run('full_size_intra_day.m');
+%run('full_size_intra_day.m');
 %% Save all
 %ans = output.solver_output.solveroutput.result.objval
-mkdir(fullfile('results',[datestr(datetime,'yy-mm-dd') '_output']));
-save(fullfile(pwd,'results', [datestr(datetime,'yy-mm-dd') '_output'], [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');
+% mkdir(fullfile('results',[datestr(datetime,'yy-mm-dd') '_output']));
+% save(fullfile(pwd,'results', [datestr(datetime,'yy-mm-dd') '_output'], [datestr(datetime,'yy-mm-dd_HH-MM') '_output']), 'output', 'params');

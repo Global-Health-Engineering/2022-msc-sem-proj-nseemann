@@ -8,12 +8,12 @@ disp('timer started');
 % Change to current running directory:
 % cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
 
-% %% Parameters
+%% Parameters
 % params.optiParams.period_op_cost = 4.5;
 % params.optiParams.truck_cost = 0;
 % params.optiParams.km_cost = 0.5;
 % params.optiParams.skip_add_cost = 0;
-% params.optiParams.max_add_bins = 10;
+% params.optiParams.max_add_bins = 13;
 % params.optiParams.period_t_max = 4;
 % 
 % params.optiParams.numV = 3;
@@ -25,9 +25,9 @@ disp('timer started');
 % params.preParams.P = 2;
 % params.preParams.underfull_threshold = 0.6;
 % params.preParams.set_add_bins = 2;
-% params.preParams.per_week_consider = 4;
+% params.preParams.per_week_consider = 3;
 % params.preParams.unified_salary = 1;
-
+%%
 
 % % Cost of operating one truck for 1 day (assume labour costs)
 % period_op_cost = 4.5;
@@ -207,14 +207,11 @@ for i = 1:numBins
     end 
 end
 
-% possible_extra = 0;
-% for i = 1:length(scen_cells)
-%     possible_extra = possible_extra + max(scen_cells{i,2});
-% end
-% 
-% 
-% disp('Max number of additional skips: ')
-% disp(possible_extra)
+possible_extra = 0;
+for i = 1:length(scen_cells)
+    possible_extra = possible_extra + max(scen_cells{i,2});
+end
+
 scen_cells_extra = {};
 skip_nums_extra_scens = [];
 scen_cells_indices = {};

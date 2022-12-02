@@ -1,10 +1,11 @@
-clear
-load(fullfile(pwd,'results','22-11-25_output','22-11-25_22-22_output.mat'));
+%clear
+%load(fullfile(pwd,'results','22-11-25_output','22-11-25_22-22_output.mat'));
 %% Plot results
-close all
+%close all
 T = params.preParams.T;
 P = params.preParams.P;
 %%
+figure()
 t = tiledlayout(1,1);
 current_vals = output.optiVars.xit;
 markers = ['.','*','x','+'];
@@ -70,7 +71,6 @@ for d = 1:T*P
     %find(joined_xit(d,:))
 end
 figure()
-
 t = tiledlayout(1,1);
 bar(x, [no_days;output.optiVars.numV_D']');
 ylim([0,20])
@@ -109,6 +109,7 @@ hold off
     
     %% Cost breakdown
 
+figure()
 t = tiledlayout(1,1);
 x = linspace(0.25,T-0.25,T*P);
 
