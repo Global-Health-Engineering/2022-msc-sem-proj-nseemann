@@ -10,18 +10,12 @@ add_bins_vect_2_11 = output.results.add_bins_vect;
 
 [add_bins_vect_1_11' add_bins_vect_2_11' output.process.filling_rates(:,1)]
 
-%%
-load(fullfile(pwd,'results','22-11-28_output','22-11-28_18-11_output.mat'));
-indices_06 = find(output.process.filling_rates(:,1) > 0.6);
-indices_06_1 = indices_06(1);
-indices_0_skips = output.process.scen_cells{indices_06_1,1}(output.process.scen_cells{indices_06_1,2} == 0);
-size(indices_0_skips)
-output.process.scens(indices_0_skips,:)
+%% Number of rounds depending on added skips
+%%Costs per day depending on added skips
+%%Costs per round depending on added
 
-indices_1_skips = output.process.scen_cells{indices_06_1,1}(output.process.scen_cells{indices_06_1,2} == 1);
-size(indices_1_skips)
-output.process.scens(indices_1_skips,:)
-
+total_rounds = sum(output.optiVars.numV_D)
+dist_cost_per_round = sum(output.results.distance_cost)./total_rounds
 %% Number of possible extra skips from scenarios
 possible_extra = 0;
 for i = 1:length(output.process.scen_cells)
@@ -37,7 +31,7 @@ output.process.filling_rates(output.process.skip_nums_extra_scens(find(sum(outpu
 
 % distance dump-skip
 (output.process.dist_mat(params.preParams.dump_ind,skips_added_indices)' + output.process.dist_mat(skips_added_indices,params.preParams.dump_ind))/2
-%%
+%% Comparing scen_cell collection intensity depending on scenario and added skips
 i=16
 [sum(output.process.scens(output.process.scen_cells{i,1},:),2) output.process.scen_cells{i,2} output.process.filling_rates(i,1)./(1+output.process.scen_cells{i,2})]
 

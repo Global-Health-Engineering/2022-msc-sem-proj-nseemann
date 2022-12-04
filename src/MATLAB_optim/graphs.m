@@ -4,7 +4,7 @@
 %close all
 T = params.preParams.T;
 P = params.preParams.P;
-%%
+%% Scatter schedule
 figure()
 t = tiledlayout(1,1);
 current_vals = output.optiVars.xit;

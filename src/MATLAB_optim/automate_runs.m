@@ -30,10 +30,10 @@ clearvars -except params_basis
 experiment = zeros(1,7); %numV,set_add,max_add,possible_add,added,objective,gap
 params = params_basis;
 
-params.optiParams.numV = 3;
+params.optiParams.numV = 4;
 params.optiParams.period_t_max = 4;
-params.preParams.set_add_bins = 2;
-vary_max_add_bins = 14;
+params.preParams.set_add_bins = 1;
+vary_max_add_bins = 2;
 
 %table_parameters = ["numV";"set_add_bins";"possible_extra";"feas","added";"objective";"gap"];
 
