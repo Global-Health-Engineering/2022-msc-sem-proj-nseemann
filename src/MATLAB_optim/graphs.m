@@ -64,6 +64,7 @@ lgd.Title.String = 'Period';
  %% Daily operation breakdown analysis
 %Day breakdown
 no_days = [];
+x = linspace(0.25,T-0.25,T*P);
 
 for d = 1:T*P
     joined_xit = [output.optiVars.xit output.optiVars.xit_extra];
@@ -73,7 +74,7 @@ end
 figure()
 t = tiledlayout(1,1);
 bar(x, [no_days;output.optiVars.numV_D']');
-ylim([0,20])
+ylim([0,25])
 ylabel('Number of skips serviced | Number of vehicles operated')
 xlim([0,7])
 xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
@@ -89,7 +90,7 @@ set(ax, 'XMinorGrid', 'off', 'YMinorGrid', 'on')
 ax.GridLineStyle = '-';
 ax.GridColor = 'k';
 ax.GridAlpha = 1;
-ax.YAxis.MinorTickValues = 0:18:18;
+ax.YAxis.MinorTickValues = 0:1:24;
 ax.XAxis.MinorTickValues = [];
 set(gca,'MinorGridLineStyle','-')
 set(ax,'TickLength', [0.01 0.01]);
@@ -103,9 +104,64 @@ ax2.XAxis.Visible  = 'on';
 xticks(ax2, 0.5+linspace(0,6,7))
 xticklabels(ax2, {'Mon','Tue','Wed','Thu','Fri','Sat','Sun'});
 ax2.Box = 'on';
-set(ax2, 'XMinorGrid', 'off', 'YGrid','off')
+set(ax2, 'XMinorGrid', 'off', 'YGrid','on')
 xlim(ax2,[0 7])
 hold off
+    
+%% Daily time analysis
+%Day breakdown
+no_days = [];
+x = linspace(0.25,T-0.25,T*P);
+
+xit = output.optiVars.xit;
+fit = output.optiVars.fit;
+fit_extra = output.optiVars.fit_extra;
+xit_extra = output.optiVars.xit_extra;
+numV_D = output.optiVars.numV_D;
+
+
+
+period_time_norm = ([xit_extra xit]*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips])'...
+    + (t_mat([skip_nums_extra_scens indices_skips],params.preParams.dump_ind)'*[xit_extra xit]')'...
+    + [fit_extra fit]*((-1*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips]) + t_mat(params.preParams.depot_ind,[skip_nums_extra_scens indices_skips])))'...
+    + numV_D*t_mat(params.preParams.dump_ind,params.preParams.depot_ind))./numV_D;
+figure()
+t = tiledlayout(1,1);
+weighted_efficiency = sum(rmmissing(100*(period_time_norm.*numV_D/params.optiParams.period_t_max)))/(sum(numV_D))
+bar(x, 100*period_time_norm/params.optiParams.period_t_max);
+ylabel('Time used in each period [%]')
+xlabel('Period')
+xlim([0,7])
+xticks(sort([linspace(0.25,6.25,7) linspace(0.75,6.75,7)]))
+
+xticklabels(repmat(["am","pm"],1,7))
+
+grayColor = [.7 .7 .7];
+%xticklabels({'Mon','Tue','Wed','Thu','Fri','Sat','Sun'})
+h = arrayfun(@(a,b)xline(a, "-",'LineWidth',0.75,'Color',grayColor,'LabelHorizontalAlignment','left','LabelVerticalAlignment','top'),[1 2 3 4 5 6 7]);
+ylim([0 110])     
+ax = gca;
+ax.LineWidth = 0.2;
+ax.GridLineStyle = '-';
+ax.GridColor = grayColor;
+ax.GridAlpha = 1;
+ax.YAxis.TickValues = 0:20:100;
+ax.XAxis.MinorTickValues = [];
+set(gca,'MinorGridLineStyle','-')
+set(ax,'TickLength', [0.01 0.01], 'YGrid', 'on');
+
+ax2 = axes(t);
+
+ax2.XAxisLocation = 'top';
+ax2.YAxis.Visible  = 'off';
+ax2.XAxis.Visible  = 'on';
+xticks(ax2, 0.5+linspace(0,6,7))
+xticklabels(ax2, {'Mon','Tue','Wed','Thu','Fri','Sat','Sun'});
+ax2.Box = 'on';
+set(ax2, 'XMinorGrid', 'off', 'YGrid','on')
+xlim(ax2,[0 7])
+hold off
+close('all')
     
     %% Cost breakdown
 
@@ -121,7 +177,7 @@ ax = gca;
 ax.LineWidth = 0.5;
 set(gca, 'YGrid', 'on', 'XGrid', 'on')
 ax.XAxis.Visible = 'off';
-ylabel('Costs [x10^3 MWK]')
+ylabel('Costs [10^3 MWK]')
 
 
 ax2 = axes(t);
