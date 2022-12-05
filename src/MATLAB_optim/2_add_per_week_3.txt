@@ -1,2 +1,2 @@
 numV,set_add_bins,max_add,feas,added,objective,gap
-10,1,2,0,0,0,0
+2,1,7,0,0,0,0
