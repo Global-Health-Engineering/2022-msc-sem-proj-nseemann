@@ -2,8 +2,6 @@
 %%%Course: SP
 close all
 %clear
-tic;
-disp('timer started');
 
 % Change to current running directory:
 % cd 'D:\Semester_project_git\2022-msc-sem-proj-nseemann\src\MATLAB_optim'
