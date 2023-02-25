@@ -1,3 +1,10 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ETH ZURICH                                                  %%%
+%%% Author: Nicolas Seemann-Ricard nseemann@student.ethz.ch     %%%
+%%% Date: 29.01.2023                                            %%%
+%%% Description                                                 %%%
+%%% Requirements:                                               %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameters
 clear
 params.optiParams.period_op_cost = 5400;
@@ -31,7 +38,7 @@ experiment = zeros(1,7); %numV,set_add,max_add,possible_add,added,objective,gap
 params = params_basis;
 
 params.preParams.dump_ind = 55;
-params.optiParams.numV = 2;
+params.optiParams.numV = 3;
 params.optiParams.period_t_max = 4;
 params.preParams.set_add_bins = 1;
 vary_max_add_bins = 9;

@@ -1,5 +1,6 @@
-%clear
-%load(fullfile(pwd,'results','22-11-25_output','22-11-25_22-22_output.mat'));
+clear
+close all
+load(fullfile(pwd,'results','22-12-05_output','22-12-05_18-301_output.mat'));
 %% Plot results
 %close all
 T = params.preParams.T;
@@ -23,6 +24,7 @@ for i = 1:length(output.process.indices_skips)
     end
     hold on
 end
+
 b=1;
 for i = 1:length(output.process.skip_nums_extra_scens)
     current_val = round(output.optiVars.xit_extra(:,i));
@@ -58,8 +60,7 @@ set(ax2, 'XMinorGrid', 'off')
 xlim(ax2,[0 7])
 lgd=legend(legend_group(2:4),{'2','3','4'},'Location', 'northeast');
 
-lgd.Title.String = 'Period';
-
+lgd.Title.String = 'Periodicity';
 
  %% Daily operation breakdown analysis
 %Day breakdown
@@ -119,12 +120,10 @@ fit_extra = output.optiVars.fit_extra;
 xit_extra = output.optiVars.xit_extra;
 numV_D = output.optiVars.numV_D;
 
-
-
-period_time_norm = ([xit_extra xit]*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips])'...
-    + (t_mat([skip_nums_extra_scens indices_skips],params.preParams.dump_ind)'*[xit_extra xit]')'...
-    + [fit_extra fit]*((-1*t_mat(params.preParams.dump_ind,[skip_nums_extra_scens indices_skips]) + t_mat(params.preParams.depot_ind,[skip_nums_extra_scens indices_skips])))'...
-    + numV_D*t_mat(params.preParams.dump_ind,params.preParams.depot_ind))./numV_D;
+period_time_norm = ([xit_extra xit]*output.process.t_mat(params.preParams.dump_ind,[output.process.skip_nums_extra_scens output.process.indices_skips])'...
+    + (output.process.t_mat([output.process.skip_nums_extra_scens output.process.indices_skips],params.preParams.dump_ind)'*[xit_extra xit]')'...
+    + [fit_extra fit]*((-1*output.process.t_mat(params.preParams.dump_ind,[output.process.skip_nums_extra_scens output.process.indices_skips]) + output.process.t_mat(params.preParams.depot_ind,[output.process.skip_nums_extra_scens output.process.indices_skips])))'...
+    + numV_D*output.process.t_mat(params.preParams.dump_ind,params.preParams.depot_ind))./numV_D;
 figure()
 t = tiledlayout(1,1);
 weighted_efficiency = sum(rmmissing(100*(period_time_norm.*numV_D/params.optiParams.period_t_max)))/(sum(numV_D))
@@ -161,9 +160,8 @@ ax2.Box = 'on';
 set(ax2, 'XMinorGrid', 'off', 'YGrid','on')
 xlim(ax2,[0 7])
 hold off
-close('all')
     
-    %% Cost breakdown
+%% Cost breakdown
 
 figure()
 t = tiledlayout(1,1);

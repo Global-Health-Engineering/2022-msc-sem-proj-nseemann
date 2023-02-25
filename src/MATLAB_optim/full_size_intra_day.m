@@ -1,5 +1,11 @@
-%%%ETH ZURICH 
-%%%Course: SP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ETH ZURICH                                                  %%%
+%%% Author: Nicolas Seemann-Ricard nseemann@student.ethz.ch     %%%
+%%% Date: 29.01.2023                                            %%%
+%%% Description                                                 %%%
+%%% Requirements:                                               %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
 close all
 %clear
 
